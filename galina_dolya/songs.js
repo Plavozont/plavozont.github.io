@@ -33,9 +33,9 @@
         
         if (reshetka != -1)
         {
-            var anch = window.location.href.substring(window.location.href.indexOf("#")+1)
+            //var anch = window.location.href.substring(window.location.href.indexOf("#")+1)
             
-            loadpage(anch)
+            loadpage(window.location.hash.replace("#",""))
             
         } else
         {
@@ -118,6 +118,9 @@ window.onresize = function ()
     place_circle("circle2")
     place_circle("circle3")
     
+    place_triangle("triangle_left")
+    place_triangle("triangle_right")
+    
     //~ window.cnvs.style.width = img.clientWidth + "px";
     //~ window.cnvs.style.height = img.clientHeight + "px";
 }
@@ -131,9 +134,35 @@ function create_circle(id, song, x, y, r)
     window.circle_places[id].x = x
     window.circle_places[id].y = y
     window.circle_places[id].r = r
-    
-    
 }
+
+
+
+function create_triangle(id, x, y, r)
+{
+    if (id.indexOf("left") != -1)
+    {
+        var style = "style='transform:rotate(270deg);'";
+    }
+
+    if (id.indexOf("right") != -1)
+    {
+        var style = "style='transform:rotate(90deg);'";
+    }
+
+    document.body.insertAdjacentHTML('afterbegin', '<div id="' + id + '" class="triangle" ' + style + ' touchend=\'switch_page("' + id + '")\' onclick=\'switch_page("' + id + '")\'><div id = "' + id + '_inner" class="triangle_inner"></div></div>')
+    
+    
+    if (window.triangle_places == undefined) window.triangle_places = []
+    if (window.triangle_places[id] == undefined) window.triangle_places[id] = {}
+    
+    window.triangle_places[id].x = x
+    window.triangle_places[id].y = y
+    window.triangle_places[id].r = r
+
+}
+
+
 
 function destroy_circles()
 {
@@ -191,6 +220,50 @@ function place_circle(id)
 
 
 
+function place_triangle(id)
+{
+    var t1 = document.getElementById(id)
+    var t1i = document.getElementById(id + "_inner")
+    
+    if (t1 == undefined) return
+    
+    var x = window.triangle_places[id].x
+    var y = window.triangle_places[id].y
+    var r = window.triangle_places[id].r
+    
+    var img_height = window.img.clientHeight
+    var img_width = window.img.clientWidth
+    
+    var square_size = ((img_height >= img_width) ? img_width : img_height) * (r/100);
+    
+    //console.log(img_height + " " + img_width)
+    
+    var half_size = Math.round(square_size/2)
+    
+    //чёрный треугольник (в роли чёрной границы)
+    t1.style.top = Math.round((((img_height * (y / 100)) + window.img.offsetTop) - (square_size / 2)) - 2) + "px"
+    t1.style.left = Math.round((((img_width * (x / 100)) + window.img.offsetLeft) - (square_size / 2)) - 2) + "px"
+
+    t1.style.borderBottomWidth = (square_size) + "px"
+    t1.style.borderLeftWidth = half_size + "px"
+    t1.style.borderRightWidth = half_size + "px"
+
+    
+    //Белый треугольник внутри чёрного
+    t1i.style.top = Math.round(half_size * (3/50)) + "px"
+    t1i.style.left = -Math.round((half_size * (47/50))) + "px"
+    
+    t1i.style.borderBottomWidth = Math.round(square_size * (95/100)) + "px"
+    t1i.style.borderLeftWidth = Math.round(half_size * (47/50)) + "px"
+    t1i.style.borderRightWidth = Math.round(half_size * (47/50)) + "px"
+
+
+
+    //c1.style.width = (square_size) + "px"
+}
+
+
+
 /* When the user clicks on the button,
 toggle between hiding and showing the dropdown content */
 function myFunction(evt) {
@@ -209,6 +282,31 @@ function myFunction(evt) {
     
 }
 
+function switch_page(id)
+{
+    if (id.indexOf("left") != -1)
+    {
+        var ind = pages.indexOf(window.location.hash.replace('#',''))
+        if (ind - 1 >= 0)
+        {
+            var new_ind = ind - 1
+            window.location = "#" + window.pages[new_ind]
+            window.location.reload()
+        }
+    }
+
+    if (id.indexOf("right") != -1)
+    {
+        var ind = pages.indexOf(window.location.hash.replace('#',''))
+        if (ind + 1 < pages.length)
+        {
+            var new_ind = ind + 1
+            window.location = "#" + window.pages[new_ind]
+            window.location.reload()
+        }
+    }
+
+}
 
 function loadpage(page_name)
 {
@@ -329,7 +427,8 @@ function loadpage(page_name)
     }
     
     
-    
+    create_triangle("triangle_left", 3.562737642585551,38.30513595166163, 6)
+    create_triangle("triangle_right", 95.93697478991596,38.30513595166163, 6)
     
     //destroy_circles()
     
@@ -355,10 +454,13 @@ function loadpage(page_name)
     //~ }
     
     
-    place_circle("circle1")
-    place_circle("circle2")
-    place_circle("circle3")
+    // place_circle("circle1")
+    // place_circle("circle2")
+    // place_circle("circle3")
     
+    // place_triangle("triangle_left")
+    //place_triangle("triangle_right")
+
     
 }
 

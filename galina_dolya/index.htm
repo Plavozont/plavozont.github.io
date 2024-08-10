@@ -24,11 +24,90 @@
     z-index: 10000;
 }
 
+
+.triangle {
+    width: 0;
+    height: 0;
+    border-left: 50px solid transparent;
+    border-right: 50px solid transparent;
+    border-bottom: 100px solid black;
+    position:absolute;
+    opacity:0.5;
+}
+.triangle_inner{
+    content:'';
+    position:absolute;
+    top:5px;
+    left:-45px;
+    width: 0;
+    height: 0;
+    border-left: 45px solid transparent;
+    border-right: 45px solid transparent;
+    border-bottom: 92px solid white;
+}
+
+.triangle_inner:hover{
+    border-bottom-color: yellow;
+}
+
+
+/* .triangle_border {
+  position:absolute;
+  background-color:transparent;
+  filter: opacity(0.5);
+  width: 0;
+  height: 0;
+  border-left: 50px solid transparent;
+  border-right: 50px solid transparent;
+  border-bottom: 100px solid black;
+  transform: rotate(90deg);
+  z-index: 10000;
+}
+
+.triangle_border:hover {
+  position:absolute;
+  background-color:transparent;
+  filter: opacity(0.5);
+  width: 0;
+  height: 0;
+  border-left: 50px solid transparent;
+  border-right: 50px solid transparent;
+  border-bottom: 100px solid black;
+  transform: rotate(90deg);
+  z-index: 10000;
+}
+
+.triangle {
+  position:absolute;
+  background-color:transparent;
+  filter: opacity(0.5);
+  width: 0;
+  height: 0;
+  border-left: 50px solid transparent;
+  border-right: 50px solid transparent;
+  border-bottom: 100px solid white;
+  transform: rotate(90deg);
+  z-index: 10000;
+}
+
+.triangle:hover {
+  position:absolute;
+  background-color:transparent;
+  filter: opacity(0.5);
+  width: 0;
+  height: 0;
+  border-left: 50px solid transparent;
+  border-right: 50px solid transparent;
+  border-bottom: 100px solid yellow;
+  transform: rotate(90deg);
+  z-index: 10000;
+} */
+
  /* Dropdown Button */
 .dropbtn {
     background-color: #3498DB;
     color: white;
-    padding: 16px;
+    padding: 6px;
     font-size: 16px;
     border: none;
     cursor: pointer;
@@ -89,7 +168,7 @@
 <div style="width:100%;height:100%;">
     <div style="position:fixed;left:0px;top:0px;width:100%;">
         <table style="width:100%;"><tr><td style="width:1%;">
-        <button id="menu" onclick="myFunction(event)" class="dropbtn" style="display:inline-block;height:40px;">Dropdown</button>
+        <button id="menu" onclick="myFunction(event)" class="dropbtn" style="display:inline-block;height:40px;">Menu</button>
         <!--input type="button" value="Menu" class="dropbtn" onclick="myFunction()" style="display:inline-block;height:40px;"-->
         <td>
         <audio id="song_box" controls style="width:100%;display:inline-block;">
