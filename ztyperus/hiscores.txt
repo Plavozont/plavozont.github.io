@@ -1,0 +1,110 @@
+08.05.2015
+Level cleared 19
+Accuracy 92.6
+Words per minute 30
+
+12.07.2015
+level cleared 17
+Accuracy 90.8
+Words per minute 27.9
+
+13.07.2015
+level cleared 18
+Accuracy 91.5
+Words per minute 28.7
+
+13.07.2015
+level cleared 19
+Accuracy 90.6
+Words per minute 29.6
+
+31.08.2015
+Level cleared 19
+Accuracy 93.9
+Words per minute 28.5
+
+28.10.2015
+Level cleared 18
+Accuracy 94.7 
+Words per minute 29.4
+
+25.03.2016
+Level cleared 18
+Accuracy 90.2
+Words per minute 28.8
+
+21.06.2016
+Level cleared 15
+Accuracy 94.3
+Words per minute 29.6
+
+05.07.2016
+Level cleared 19
+Accuracy 90.5
+Words per minute 29.6
+
+28.07.2016
+Level cleared 19
+Accuracy 92.7
+Words per minute 27.9
+
+22.09.2016
+Level cleared 19
+Accuracy 93.8
+Words per minute 29.8
+
+30.09.2016
+Level cleared 20
+Accuracy 93.9 / 94.7
+Words Per Minute 30.1
+
+28.10.2017
+Level cleared 19
+Accuracy 95.7                        - MAX
+Words Per Minute 31.3          - MAX
+
+13.08.2018
+Level cleared 18
+Accuracy 95.1
+Words Per Minute 29.2
+
+09.04.2022
+Level cleared 19
+Accuracy 91.7
+Words Per Minute 31
+ 
+12.07.2022
+Level cleared 20
+Accuracy 93.2
+Words Per Minute 31.1
+ 
+27.09.2023
+Level cleared 20                  - MAX
+Accuracy 95.1
+Words Per Minute 31.1
+ 
+26.12.2023
+Level cleared 19
+Accuracy 95.9                        - MAX
+Words Per Minute 30.2
+
+05.08.2024
+Waves cleared 17
+Accuracy 94.8
+Words Per Minute 31.7          - MAX
+
+06.08.2024
+Waves cleared 19
+Accuracy 96.3                  - MAX
+Words Per Minute 32.5          - MAX
+
+08.08.2024 (на русском)
+Waves cleared 24             - MAX
+Accuracy 94
+Words Per Minute 36.1          - MAX
+
+13.08.2024 (на русском)
+Waves cleared 21
+Accuracy 96.4                  - MAX
+Words Per Minute 34.5
+
