@@ -119,7 +119,7 @@
         //window.exercise_level = 1
         MainMenu()
         
-        window_on_resize()
+        
     })
 
     function MainMenu()
@@ -146,6 +146,8 @@
                 setTimeout(transition_effect,0)
             }
         }
+        
+        window_on_resize()
     }
 
     function Vocabulary()
@@ -153,9 +155,10 @@
         clear_rects()
         create_rect("label1",0,5,100,6,3,"<span style='color:white;'>Put word-to-lern and translation separated with \" | \" in each line and press save</span>")
         document.getElementById("label1").style.textAlign = "center"
-
-        create_textarea("voc",10,10,80,75,3,getCookie("vocabulary").replaceAll(":lnbrk:","\n"))
-        create_rect("save_btn",40,90,20,6,5,"<input type='button' class='btn' value='Save' onclick='save_voc();'>")
+        var vocabulary = getCookie("vocabulary");
+        if (vocabulary != null) vocabulary = vocabulary.replaceAll(":lnbrk:","\n")
+        create_textarea("voc",10,10,80,75,3,vocabulary)
+        create_rect("save_btn",40,90,20,6,5,"<input type='button' class='btn' value='Save' onclick='save_voc();MainMenu();'>")
         document.getElementById("voc").style.textAlign = "center"
         //document.getElementById("voc").style.fontSize = "100%"
         
@@ -666,10 +669,10 @@
         //delete window.rects[id]
     }
 
-    function clear_rects()
+    function    clear_rects()
     {
         for (let i = 0; i < window.rects.length; i++) {
-            delete_rect(window.rects[i].id)
+            if (window.rects[i]) delete_rect(window.rects[i].id)
         }
     }
         
