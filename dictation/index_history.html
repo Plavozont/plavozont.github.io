@@ -1,0 +1,582 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf8">
+    
+    <style>
+      
+        .layer
+        {
+            background-color:transparent;
+            position:absolute;
+            top:0px;
+            left:0px;
+            height:100%;
+            width: 100%;
+            pointer-events:none;
+            color:red;text-align:left;z-index:10000;
+        }
+
+        
+
+        .no-select
+        {
+           user-select: none;
+           -o-user-select:none;
+           -moz-user-select: none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           font-family: 'Times New Roman';
+        }
+        
+        .circle
+        {
+            width:100%;
+            height:100%;
+            font-size:inherit;
+            border-radius:50%;
+            border:1px solid black;
+            background-color:#111111
+        }
+
+        .cred
+        {
+            background-color:red;
+        }
+
+        .cgreen
+        {
+            background-color:lightgreen;
+        }
+
+        .btn
+        {
+            width:100%;
+            height:100%;
+            font-size:inherit;
+            padding:0px;
+            background-color:#333333;
+            border:2px solid #777777;
+            border-radius:5%;
+            color:white;
+        }
+
+        .btn:active
+        {
+            background-color:#CCCCCC;
+        }
+
+    </style>
+    
+    <!-- <script src="jquery-3.2.1.min.js"></script> -->
+    <script src="relative_els.js"></script>
+
+    <script language="javascript">
+
+    window.onresize = window_on_resize
+
+    window.onerror = function(msg, url, linenumber) 
+    {
+        var overlayerDiv = document.querySelectorAll("#overlayer")[0]
+        overlayerDiv.insertAdjacentHTML("beforeend", 'Error message: '+msg+'\nURL: '+url+'\nLine Number: '+linenumber+"<br>");
+        return true;
+    }
+    window.rects = []
+
+    function getWinRect()
+    {
+        if (window.innerWidth<window.innerHeight)
+        {
+            return {
+                    side: window.innerWidth,
+                    x:0,
+                    y:Math.round((window.innerHeight-window.innerWidth)/2)
+                }
+        }
+        else
+        {
+            return {
+                side: window.innerHeight,
+                x:Math.round((window.innerWidth-window.innerHeight)/2),
+                y:0
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function(event)
+    {
+        window.url_vars = {}
+        var urvs = window.location.search.replace("?","")
+        var vrvl = urvs.split("&")
+        for (i in vrvl)
+        {
+            vrvl_parts = vrvl[i].split("=")
+            window.url_vars[vrvl_parts[0]] = vrvl_parts[1]
+        }
+
+        //window.exercise_level = 0
+
+        //window.exercise_level = 1
+        create_rect("lvl_1",7,44,40,12,8,"<input type='button' class='btn' value='Eng' onclick='delete_rect(\"lvl_1\");delete_rect(\"lvl_1_inv\");delete_rect(\"lvl_1_type\");window.exercise_level = 1;start();'></button>")
+        create_rect("lvl_1_inv",53,44,40,12,8,"<input type='button' class='btn' value='Рус' onclick='delete_rect(\"lvl_1\");delete_rect(\"lvl_1_inv\");delete_rect(\"lvl_1_type\");window.exercise_level = 2;start();'></button>")
+        create_rect("lvl_1_type",29,60,40,12,8,"<input type='button' class='btn' value='Type' onclick='delete_rect(\"lvl_1\");delete_rect(\"lvl_1_inv\");delete_rect(\"lvl_1_type\");window.exercise_level = 3;start();'></button>")
+        window_on_resize()
+    })
+
+
+    function start()
+    {
+
+        
+        var ex = []
+        
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        /*ex.push("dress|платье")//1
+        ex.push("shoes|туфли")//2
+        ex.push("gloves|перчатки")//3
+        ex.push("skirt|юбка")//4
+        ex.push("trainers|кроссовки")//5
+        ex.push("cap|кепка")//6
+        ex.push("trousers|брюки")//7
+        ex.push("hat|шляпа")//8
+        ex.push("glasses|очки")//9
+        ex.push("shorts|шорты")//10
+        ex.push("T-shirt|футболка")//11
+        ex.push("socks|носки")//12*/window_on_resize
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+       //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ex.push("1552|взятие русскими войсками Казани")//8
+        ex.push("1556|присоединение к Московскому государству Астраханского ханства")//8
+        ex.push("1581|снаряжение отряда  атамана Ермака Тимофеевича для похода в Сибирь на средства купцов Строгановых")//8
+        ex.push("1582|разгром войск хана Кучума отрядами Ермака, занятие столицы Сибирского ханства города Кашлык")//8
+        ex.push("1585|гибель Ермака")//8
+        ex.push("1598|окончательное покорение Сибири")//8
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+
+        
+        create_rect("expr",0,35,100,11,10,"")
+        document.getElementById("expr").style.textAlign = "center"
+        document.getElementById("expr").style.color = "white"
+        
+        if (window.exercise_level==3)
+        {
+            create_input("expr1",0,55,100,11,10,"")
+            document.getElementById("expr1").style.textAlign = "center"
+            document.getElementById("expr1").style.color = "white"
+        }
+         
+        //document.getElementById("expr").style.border = "1px solid green"
+
+
+        if (window.exercise_level != 3) document.getElementById("expr").onclick = function () { next_expr(true) }
+
+
+
+        var circle_count = ex.length
+        console.log("circle_count: " + circle_count)
+        var circle_width = 100 / circle_count
+        console.log("getWinRect().side: " + getWinRect().side)
+        console.log("circle_width: " + circle_width)
+        for (let i = 1; i <= circle_count; i++) {
+            
+            create_circle("circle_"+i,((i-1)*circle_width),0,(circle_width*0.95))
+        }
+
+        
+        //var excercise=window.url_vars.exercise;
+        ex1=[]
+        //if (window.exercise_level==1)
+        //{
+            for (let index in ex) 
+            {
+              ex1.push(ex[index])//.split("|")[0])  
+            }
+        //}
+        
+        //if (window.exercise_level==2 || window.exercise_level==3)
+        //{
+            //for (let index in ex) 
+            //{
+              //ex1.push(ex[index].split("|")[1])  
+            //}
+        //}
+        
+        window.exercises = ex1
+
+        
+        console.log(window.exercises)
+
+        window.exercises=shuffleArray(window.exercises)
+
+        window.current_excercise = -1
+        window.total_answers = 0
+        window.input_string=""
+        //create_rect("btn_0",23,84,14,14,8,"<input type='button' style='width:100%;height:100%;font-size:inherit;' value='0'></button>")
+        
+        //create_rect("btn_backspace",43,84,14,14,8,"<input type='button' style='width:100%;height:100%;font-size:inherit;' value='<'></button>")
+        //create_rect("btn_OK",63,84,14,14,8,"<input type='button' style='width:100%;height:100%;font-size:inherit;' value='OK'></button>")
+
+        window_on_resize()
+
+        next_expr()
+    }
+
+    function check_answer()
+    {
+        var correct = write_answers(true)
+        
+        if (correct == true)
+        {
+            document.querySelectorAll(".circle:not(.cred):not(.cgreen)")[0].classList.add("cgreen");
+        } else
+        {
+            document.querySelectorAll(".circle:not(.cred):not(.cgreen)")[0].classList.add("cred");
+        }
+        
+        total_answers++
+        if (total_answers == 10)
+        {
+            finish()
+            
+
+            //
+            return
+        }
+
+        window.input_string=""
+        next_expr()
+    }
+
+    function finish()
+    {
+        var corr_count = document.querySelectorAll(".cgreen").length
+        var ball_word = ""
+        if (corr_count <= 1) ball_word = "балл"
+        if ([2,3,4].indexOf(corr_count) != -1) ball_word = "балла"
+        if ([5,6,7,8,9,10].indexOf(corr_count) != -1) ball_word = "баллов"
+
+        var buttons = document.querySelectorAll(".adaptive[id^=btn_]")
+        for (i in buttons)
+        {
+            if (buttons[i].toString() == "[object HTMLDivElement]") delete_rect(buttons[i].id)
+        }
+
+        delete_rect("expr")
+        
+        create_rect("finish",0,30,100,20,20,"Конец")
+        create_rect("finish1",0,50,100,10,5,corr_count + " " + ball_word)
+        document.getElementById("finish").style.color="white"
+        document.getElementById("finish").style.textAlign="center"
+        document.getElementById("finish1").style.color="white"
+        document.getElementById("finish1").style.textAlign="center"
+
+        create_rect("ok",38,70,25,12,8,"<input type='button' class='btn' value='OK' onclick='window.location.href = \"index.html\"'></button>")
+
+        window_on_resize()
+    }
+
+    // function add_number(number)
+    // {
+    //     window.input_string+=""+number
+    //     console.log(window.input_string)
+    //     write_answers()
+    // }
+
+    // function remove_number()
+    // {
+    //     window.input_string=window.input_string.substring(0,window.input_string.length-1)
+    //     console.log(window.input_string)
+    //     write_answers()
+    // }
+
+    // function write_answers(check)
+    // {
+    //     var cur_ex = window.exercises[window.current_excercise]
+    //     cur_ex = cur_ex.split("|")[1]
+    //     var cur_ex_answers = cur_ex.split(",")
+    //     var text_elements = document.querySelectorAll("input[type=text]")
+    //     var ans_lens = []
+    //     var input_string_parts = []
+    //     var total_length = 0
+        
+    //     for (i in cur_ex_answers)
+    //     {
+    //         var cur_len = cur_ex_answers[i].length
+            
+    //         input_string_parts.push(window.input_string.substring(total_length, total_length+cur_len))
+    //         if (total_length+cur_len >= window.input_string.length) break
+    //         total_length+=cur_len
+    //     }
+        
+    //     for(i in text_elements)
+    //     {
+    //         text_elements[i].value = ""
+    //     }
+
+    //     for(i in input_string_parts)
+    //     {
+    //         text_elements[i].value = input_string_parts[i]
+    //     }
+
+    //     if (typeof(check)!='undefined')
+    //     {
+    //         if (cur_ex_answers.toString() == input_string_parts.toString())
+    //         {
+    //             return true
+    //         } else
+    //         {
+    //             return false
+    //         }
+    //     }
+    //     //console.log(input_string_parts)
+    // }
+
+    function next_expr(ans)
+    {
+        window.current_excercise++
+        if (window.current_excercise >= window.exercises.length) 
+        {
+            window.current_excercise=0
+            window.exercises=shuffleArray(window.exercises)
+            var circles = document.querySelectorAll(".circle")
+            circles.forEach(element => {
+                element.classList.remove("cgreen")
+            });
+            var circles = document.querySelectorAll(".cred")
+            circles.forEach(element => {
+                element.classList.remove("cred")
+            });
+            //.each(function() {this.classList.remove("cgreen");})
+        }
+
+        // var question_count = window.exercises[window.current_excercise].length - window.exercises[window.current_excercise].replaceAll("?","").length
+        // var rect = getWinRect()
+        // for (let i = 0; i < question_count; i++) {
+        //     window.exercises[window.current_excercise]=window.exercises[window.current_excercise].replace("?","<input type='text' readonly id='txt_"+i+"' style='background-color:#222222;color:white;width:12%;height:80%;margin-top:-2%;vertical-align:middle;font-size:inherit;text-align:center;'>")
+            
+        // }
+        if (window.exercise_level==1)
+        {
+            var expr1 = window.exercises[window.current_excercise].split("|")[0]
+            
+        }
+
+        if (window.exercise_level==2)
+        {
+            var expr1 = window.exercises[window.current_excercise].split("|")[1]
+            
+        }
+
+        if (window.exercise_level==3)
+        {
+            var expr1 = window.exercises[window.current_excercise].split("|")[1]
+            var expr2 = window.exercises[window.current_excercise].split("|")[0]
+        }
+
+
+        
+        
+        document.getElementById("expr").innerHTML=expr1
+        if (window.exercise_level==3) document.getElementById("expr1").setAttribute("translation", expr2)
+
+        if (ans == true) document.querySelectorAll(".circle:not(.cred):not(.cgreen)")[0].classList.add("cgreen");
+        if (ans == false) document.querySelectorAll(".circle:not(.cred):not(.cgreen)")[0].classList.add("cred");
+
+    }
+
+    function create_btn(id,value,x,y,onclick)
+    {
+        create_rect(id,x,y,14,14,8,"<input type='button' class='btn' value='" + value + "' onclick='" + onclick + "''></button>")
+    }
+
+    function create_circle(id,x,y,radius)
+    {
+        create_rect(id,x,y,radius,radius,8,"<div class='circle'></div>")
+    }
+
+    function window_on_resize()
+    {
+        var rect = getWinRect()
+        //Установить на место главный квадрат
+        var rectDiv = document.querySelectorAll("#rectDiv")[0]
+        
+        rectDiv.style.width = rect.side + "px"
+        rectDiv.style.height = rect.side + "px"
+        rectDiv.style.top = rect.y + "px"
+        rectDiv.style.left = rect.x + "px"
+
+        var overlayerDiv = document.querySelectorAll("#overlayer")[0]
+        //Установить на место главный квадрат с ошибками
+        overlayerDiv.style.width = rect.side + "px"
+        overlayerDiv.style.height = rect.side + "px"
+        overlayerDiv.style.top = rect.y + "px"
+        overlayerDiv.style.left = rect.x + "px"
+        //overlayerDiv.style.paddingTop = Math.round(rect.side/2) + "px"
+
+        //console.log(rectDiv.style.width)
+        
+        // for (btn_i = 0; btn_i < buttons.length; btn_i++)
+        // {
+        //     buttons[btn_i].style.fontSize = Math.round(buttons[btn_i].clientHeight * 0.5) + "px"
+        //     //console.log(buttons[btn_i].style.height + "px")
+        // }
+        
+        
+        //var rect_direct = (window.innerHeight < window.innerWidth)
+        
+        //if (rect_direct != window.rect_direct_old) PlaceBoxes()
+        
+        //window.rect_direct_old = (window.innerHeight < window.innerWidth)
+        resize_rects()//подогнать все адаптивные элементы по размеру
+
+    }
+
+
+    function resize_rects()
+    {
+        var rect = getWinRect()
+        for (i = 0; i < window.rects.length; i++)
+        {
+            if (typeof(window.rects[i]) == "undefined") continue
+            var rectDiv = document.querySelectorAll("#" + window.rects[i].id)[0]
+            rectDiv.style.left = (rect.side * (window.rects[i].xp / 100) + rect.x) + "px"
+            rectDiv.style.top = (rect.side * (window.rects[i].yp / 100)  + rect.y) + "px"
+            rectDiv.style.width = (rect.side * (window.rects[i].wp / 100)) + "px"
+            rectDiv.style.height = (rect.side * (window.rects[i].hp / 100)) + "px"
+            rectDiv.style.fontSize = (rect.side * (window.rects[i].fs / 100)) + "px"
+
+            //buttons[btn_i].style.fontSize = Math.round(buttons[btn_i].clientHeight * 0.5) + "px"
+            //console.log(buttons[btn_i].style.height + "px")
+        }
+    }
+
+    function resize_el(id)
+    {
+
+    }
+    
+    /*id - идентификатор одноимённого дива\
+      xp,yp,wp,hp - лево верх ширина высота в процентах
+      fs - font size
+    */
+    function create_rect(id,xp,yp,wp,hp,fs,innerHTML)//in percent
+    {
+        window.rects.push({id:id,xp:xp,yp:yp,wp:wp,hp:hp,fs:fs})
+        var new_el = document.createElement("DIV")
+        new_el.id = id
+        new_el.style.position = "fixed"
+        new_el.style.backgroundColor = "transparent"
+        //new_el.style.borderColor = "green"
+        //new_el.style.borderWidth = "1px"
+        //new_el.style.borderStyle = "solid"
+        
+        new_el.classList.add("adaptive");
+
+        //new_el.style.width = rectSide + "px"
+        //new_el.style.height = rectSide + "px"
+        //new_el.style.left = "0px"
+        //new_el.style.top = "0px"
+        new_el.innerHTML = innerHTML
+        document.body.appendChild(new_el)
+
+
+    }
+
+    function create_input(id,xp,yp,wp,hp,fs,innerHTML)//in percent
+    {
+        window.rects.push({id:id,xp:xp,yp:yp,wp:wp,hp:hp,fs:fs})
+        var new_el = document.createElement("input")
+        new_el.id = id
+        new_el.style.position = "fixed"
+        new_el.style.backgroundColor = "transparent"
+        new_el.type = "text"
+        //new_el.style.borderColor = "green"
+        //new_el.style.borderWidth = "1px"
+        //new_el.style.borderStyle = "solid"
+        
+        new_el.classList.add("adaptive");
+
+        //new_el.style.width = rectSide + "px"
+        //new_el.style.height = rectSide + "px"
+        //new_el.style.left = "0px"
+        //new_el.style.top = "0px"
+        new_el.setAttribute("translation", innerHTML)
+        new_el.addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                if (this.value.trim()==this.getAttribute("translation")) { next_expr(true) } else { next_expr(false) }
+                document.getElementById("expr1").value = ""
+            }
+        });
+        
+        
+        document.body.appendChild(new_el)
+
+
+    }
+
+    function delete_rect(id)
+    {
+        document.getElementById(id).remove()
+        
+        for (var prop in window.rects) {
+            if (Object.prototype.hasOwnProperty.call(window.rects, prop)) {
+                
+                
+                if (window.rects[prop].id == id) delete window.rects[prop]
+            }
+        }
+
+
+        //delete window.rects[id]
+    }
+
+    function percent_to_pixels(rect,perc)
+    {
+        return Math.round((rect.side * (perc / 100)))
+    }
+
+    function shuffleArray(unshuffled)
+    {
+        let shuffled = unshuffled
+            .map(value => ({ value, sort: Math.random() }))
+            .sort((a, b) => a.sort - b.sort)
+            .map(({ value }) => value)
+        return shuffled
+    }
+
+    </script>
+
+</head>
+
+
+
+
+<body class="no-select" style="background-color:black;margin:0px;">
+
+    <div id="back_ground" class="layout">
+        
+        <div class="content">
+        </div>
+
+        <div id="rectDiv" style="position:fixed;background-color:transparent;"><!--border:2px solid green;-->
+            
+        </div>
+
+        
+    </div>
+
+    <!--<div id="debug" class="layer1" >1</div>-->
+    
+    <div id="overlayer" class="layer" ></div>
+    
+    
+    
+    
+    <script src="rnd.js"></script>
+  </body>
+</html>
