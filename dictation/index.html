@@ -154,7 +154,7 @@
         create_rect("label1",0,5,100,6,3,"<span style='color:white;'>Put word-to-lern and translation separated with \" | \" in each line and press save</span>")
         document.getElementById("label1").style.textAlign = "center"
 
-        create_textarea("voc",10,10,80,75,3,getCookie("vocabulary"))
+        create_textarea("voc",10,10,80,75,3,getCookie("vocabulary").replaceAll(":lnbrk:","\n"))
         create_rect("save_btn",40,90,20,6,5,"<input type='button' class='btn' value='Save' onclick='save_voc();'>")
         document.getElementById("voc").style.textAlign = "center"
         //document.getElementById("voc").style.fontSize = "100%"
