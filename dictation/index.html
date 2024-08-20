@@ -164,7 +164,7 @@
 
     function save_voc()
     {
-        setCookie("vocabulary",voc.value.replace("\n", ":lnbrk:"),365)
+        setCookie("vocabulary",voc.value.replaceAll("\n", ":lnbrk:"),365)
     }
 
     function transition_effect()
@@ -242,7 +242,7 @@
 Παρουσιάζω|I present
 Αστείος|funny`
         
-        var vocabulary = getCookie("vocabulary").replace(":lnbrk:", "\n")
+        var vocabulary = getCookie("vocabulary").replaceAll(":lnbrk:", "\n")
         vocabulary.split("\n").forEach(element => {
             if (element.trim() != "") ex.push(element)    
         });
