@@ -95,8 +95,18 @@ var map1 = [
 function Init()
 {
 
-  window.CELL_SIZE = 32;
+  window.arduino = false
+  window.monochrome = false
+  window.renderRaysDebug = false
+  window.renderRaysDebug_Debugger = false
+  window.renderRayDebugStartingRay = 0
+  window.renderRayDebugCurRay = 0
+  window.AnimationFrame = true
+  window.minimapVisible = false
 
+  window.frame_count = 0;
+  window.seconds = Date.now()
+  window.CELL_SIZE = 32;
 
 
   var map1 = RoomGen()
@@ -134,18 +144,48 @@ function Init()
         map1[y][x]=parseInt(0)
       } else
       {
-        var r = Math.round(Math.random()*128+64)
-        var g = Math.round(Math.random()*128+64)
-        var b = Math.round(Math.random()*128+64)
-  
-        map1[y][x]=encode_argb(255,r,g,b)
+        map1[y][x]=random_rgb();
       }
     });
   });
   
-  map1[9][10] = encode_argb(255,255,255,255)
-  map1[1][0] = encode_argb(255,0,0,0)
+  var corridor_length = 10
+  //corridor_length = map1.length + corridor_length
+  var map1_width = map1[0].length
+  var map1_height = map1.length
+  for (let ii = map1_width; ii < corridor_length+map1_width+1; ii++) {
+    
+    for (let i = 0; i < map1_height; i++) {
+
+      if (i==9)
+      {
+        map1[i][ii] = parseInt(0);
+      } else if (i>=1 && i<=map1_height-4 && ii != corridor_length+map1_width)
+      {
+        map1[i][ii] = parseInt(0);
+      }
+      else
+      {
+        map1[i][ii] = random_rgb();
+      }
+    } 
+  }
+
+
   
+
+  //map1[8][map1_width+corridor_length-2] = parseInt(0)
+  map1[map1_width-2][map1_height-1] = parseInt(0)
+  map1[map1_width-2][corridor_length+map1_width] = encode_argb(255,255,255,255)
+
+  //map1[1][0] = encode_argb(255,0,0,0)
+  
+
+
+  // 
+  // map1[9][11] = encode_argb(255,255,255,255)
+  // map1[10][11] = encode_argb(255,255,255,255)
+
   window.beautify = true
   
   
@@ -193,15 +233,17 @@ Init()
 
 //const map=JSON.parse('[[-5483342,-10904985,-7753145,-6328474,-8543649,-7778632,-7297448,-9729133,-6596973,-8744581,-7383117],[-7320217,0,0,0,-8802981,0,0,0,-11044250,0,-6524827],[-9352027,0,-8425122,0,-8609423,0,-7830336,-10578782,-8358023,0,-9082198],[-6790296,0,-5458810,0,0,0,0,0,0,0,-11636143],[-8943176,0,-11833705,-8601742,-7248826,-4282985,-8614505,-10569839,-7971695,-8670825,-6912134],[-7958595,0,-9852240,0,-4493692,0,0,0,-6316653,0,-8363909],[-4493440,0,-8890482,0,-10447022,0,-11428772,0,-5815467,0,-4755360],[-4946341,0,-5606256,0,-4956244,0,-12083278,0,0,0,-10707369],[-10840935,0,-6252184,0,-9610142,0,-9388618,-6201161,-9152087,-6729648,-7499080],[-5937560,0,0,0,0,0,0,0,0,0,-5652839],[-7511121,-11965088,-7907773,-11447458,-5217470,-10271332,-9470305,-6509956,-8676983,-6111820,-7366816]]')
 
-const arduino = false
-const monochrome = false
-window.renderRaysDebug = false
-window.renderRaysDebug_Debugger = false
-window.renderRayDebugStartingRay = 0
-window.renderRayDebugCurRay = 0
+function random_rgb()
+{
+  var r = Math.round(Math.random()*128+64)
+  var g = Math.round(Math.random()*128+64)
+  var b = Math.round(Math.random()*128+64)
+  return encode_argb(255,r,g,b)
+}
+
 const v_step = 1 //горизонтальное разрешение
 
-window.AnimationFrame = true
+
 
 window.textures = []
 window.texturesV = []
@@ -362,7 +404,15 @@ function gameLoop(time) {
     console.log("Final Rays");
     log_rays()
   }
+
+  window.frame_count++
+
   
+  var seconds_passed = Date.now()-window.seconds
+  window.fps = Math.round(window.frame_count / seconds_passed * 1000)
+  
+
+
   if (window.AnimationFrame == true) window.requestAnimationFrame(gameLoop)
   //window.old_time = time
 }
@@ -398,7 +448,7 @@ function rend()
 
 function renderMinimap(posX = 0, posY = 0, scale, time) {
   if (arduino == true) return
-  
+  if (window.minimapVisible == false) return
   const cellSize = scale * CELL_SIZE;
   map.forEach((row, y) => {
     row.forEach((cell, x) => {
@@ -500,6 +550,8 @@ function renderMinimap(posX = 0, posY = 0, scale, time) {
   context.strokeText("H distance " + getHCollision(player.angle).distance, map[0].length * cellSize, cellSize*2.5);
   context.strokeText("V distance " + getVCollision(player.angle).distance, map[0].length * cellSize, cellSize*3);
   
+  context.strokeText("FPS " + window.fps, map[0].length * cellSize, cellSize*3.5);
+  //context.strokeText("Seconds Count " + , map[0].length * cellSize, cellSize*4);
 
 }
 
@@ -1894,7 +1946,7 @@ function apply_move(mx,my)
     }
     if (cell_value_x == -1 || cell_value_y == -1)
     {
-      alert("Exit!")
+      //alert("Exit!")
       Init()
     }
     //если в обоих направлениях тупик - никуда не двигаемся
@@ -2620,6 +2672,11 @@ document.addEventListener("keyup", (e) => {
   }
   if (e.key === "c" ) {
     console.log("if (true) { player.x=" + player.x + "; player.y=" + player.y + "; player.angle=" + player.angle + "; }")
+  }
+  //console.log(e.key)
+  if (e.key === "m")
+  {
+    window.minimapVisible = !window.minimapVisible
   }
 });
 
