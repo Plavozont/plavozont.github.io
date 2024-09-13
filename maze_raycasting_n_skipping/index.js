@@ -1,3 +1,9 @@
+//В общем следующая супер задача, нарисовать кружочки в начале и конце каждой линии на полу, только тогда можно будет по ним многоугольники закрашенные
+//на полу нарисовать
+
+//Ну и конечно попробовать не запоминать в массив все линии на полу которые были нарисованы чтобы их повторно не рисовать, а в CastRay2 запоминать только
+//последнюю нарисованную полоску и при выходе из него её последнюю рисовать
+
 // const map = [
 //   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 //   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -86,58 +92,104 @@ var map1 = [
 // });
 
 
-map1 = RoomGen()
-map1.forEach((row, y) => {
-  row.forEach((cell, x) => {
-    if (cell=="0" || cell=="1") 
-    map1[y][x]=parseInt(cell)
+function Init()
+{
 
-    if (cell==" ")
-    {
-      map1[y][x]=0
-    } else if(cell == encode_argb(255,254,254,254))
-    {
-      map1[y][x] = 0//encode_argb(255,254,0,0)
-    } else
-    {
-      map1[y][x] = parseInt(cell)//Окраска всего остального
-      if (x == 0 || y == 0 || x == row.length-1 || y == map1.length-1)
+  window.CELL_SIZE = 32;
+
+
+
+  var map1 = RoomGen()
+  map1.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      if (cell=="0" || cell=="1") 
+      map1[y][x]=parseInt(cell)
+  
+      if (cell==" ")
       {
-        map1[y][x] = encode_argb(255,0,128,128)//Окраска периметра
+        map1[y][x]=0
+      } else if(cell == encode_argb(255,254,254,254))
+      {
+        map1[y][x] = 0//encode_argb(255,254,0,0)
+      } else
+      {
+        map1[y][x] = parseInt(cell)//Окраска всего остального
+        if (x == 0 || y == 0 || x == row.length-1 || y == map1.length-1)
+        {
+          map1[y][x] = encode_argb(255,0,128,128)//Окраска периметра
+        }
       }
-    }
+    });
   });
-});
-
-
-map1 = new MazeBuilder(5, 5);
-
-map1 = map1.maze
-
-map1.forEach((row, y) => {
-  row.forEach((cell, x) => {
-    if (cell.length==0) 
-    {
-      map1[y][x]=parseInt(0)
-    } else
-    {
-      var r = Math.round(Math.random()*128+64)
-      var g = Math.round(Math.random()*128+64)
-      var b = Math.round(Math.random()*128+64)
-
-      map1[y][x]=encode_argb(255,r,g,b)
-    }
+  
+  
+  map1 = new MazeBuilder(5, 5);
+  
+  map1 = map1.maze
+  
+  map1.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      if (cell.length==0) 
+      {
+        map1[y][x]=parseInt(0)
+      } else
+      {
+        var r = Math.round(Math.random()*128+64)
+        var g = Math.round(Math.random()*128+64)
+        var b = Math.round(Math.random()*128+64)
+  
+        map1[y][x]=encode_argb(255,r,g,b)
+      }
+    });
   });
-});
+  
+  map1[9][10] = encode_argb(255,255,255,255)
+  map1[1][0] = encode_argb(255,0,0,0)
+  
+  window.beautify = true
+  
+  
+  //const map=map1
+  
+  //Где справа между стенками при обратном проходе полоски не прорисовываются
+  if (window.beautify != true)
+  {
+    window.map = JSON.parse(`[[-10974029,-5086044,-7044163,-8688535,-9979715,-8670342,-9415031,-7423666,-8688262,-8539570,-8567678],[-7779508,0,0,0,0,0,-8556205,0,0,0,-11511997],[-11292547,-4501389,-9989478,-9331065,-4438162,0,-9399364,0,-12216199,-5730134,-5407597],[-6459575,0,0,0,0,0,-4219998,0,0,0,-6178184],[-9348462,0,-5731959,-9793658,-10504271,-5277015,-6912925,-7358592,-5338999,0,-10916971],[-4938865,0,0,0,0,0,0,0,0,0,-10858310],[-11112295,0,-10848869,0,-6653030,0,-11630977,0,-6192757,0,-7099290],[-4349539,0,-4949330,0,-6128307,0,-6133646,0,-4822709,0,-7450488],[-4807847,0,-11494785,-4212842,-8540293,-4299649,-9585754,-5285275,-10448491,0,-8282245],[-6845065,0,0,0,0,0,-6312315,0,0,0,-7948148],[-11960732,-5791827,-11766370,-10896523,-9676451,-9194646,-8738225,-9347663,-5741699,-6656594,-12096178]]`)
+  } else
+  {
+    window.map = map1
+  }
+
+  window.player = {
+    x: CELL_SIZE * 1.1, //x: CELL_SIZE * 2.5,
+    y: CELL_SIZE * 1.1, //y: CELL_SIZE * 16,
+    angle: toRadians(45),
+    speed: 0,
+    rotateSpeed: 0,
+    strifeSpeed: 0,
+  };
+  
+  
+  //Где справа между стенками при обратном проходе полоски не прорисовываются
+  // if (true)
+  // {
+  //   player.x = 36.717477171126944
+  //   player.y = 170.17699802485475
+  //   player.angle = 0.19634954084938488
+  // }
+  
+  //Где справа между стенкамм ещё какая-то линия не прорисовывается
+  if (window.beautify != true)
+  {
+    player.x = 40.82416655732636
+    player.y = 241.0192749320997
+    player.angle = 4.9960049838337905
+  }
 
 
+}
 
-
-
-//const map=map1
-
-//Где справа между стенками при обратном проходе полоски не прорисовываются
-const map=JSON.parse(`[[-10974029,-5086044,-7044163,-8688535,-9979715,-8670342,-9415031,-7423666,-8688262,-8539570,-8567678],[-7779508,0,0,0,0,0,-8556205,0,0,0,-11511997],[-11292547,-4501389,-9989478,-9331065,-4438162,0,-9399364,0,-12216199,-5730134,-5407597],[-6459575,0,0,0,0,0,-4219998,0,0,0,-6178184],[-9348462,0,-5731959,-9793658,-10504271,-5277015,-6912925,-7358592,-5338999,0,-10916971],[-4938865,0,0,0,0,0,0,0,0,0,-10858310],[-11112295,0,-10848869,0,-6653030,0,-11630977,0,-6192757,0,-7099290],[-4349539,0,-4949330,0,-6128307,0,-6133646,0,-4822709,0,-7450488],[-4807847,0,-11494785,-4212842,-8540293,-4299649,-9585754,-5285275,-10448491,0,-8282245],[-6845065,0,0,0,0,0,-6312315,0,0,0,-7948148],[-11960732,-5791827,-11766370,-10896523,-9676451,-9194646,-8738225,-9347663,-5741699,-6656594,-12096178]]`)
+Init()
 
 //const map=JSON.parse('[[-5483342,-10904985,-7753145,-6328474,-8543649,-7778632,-7297448,-9729133,-6596973,-8744581,-7383117],[-7320217,0,0,0,-8802981,0,0,0,-11044250,0,-6524827],[-9352027,0,-8425122,0,-8609423,0,-7830336,-10578782,-8358023,0,-9082198],[-6790296,0,-5458810,0,0,0,0,0,0,0,-11636143],[-8943176,0,-11833705,-8601742,-7248826,-4282985,-8614505,-10569839,-7971695,-8670825,-6912134],[-7958595,0,-9852240,0,-4493692,0,0,0,-6316653,0,-8363909],[-4493440,0,-8890482,0,-10447022,0,-11428772,0,-5815467,0,-4755360],[-4946341,0,-5606256,0,-4956244,0,-12083278,0,0,0,-10707369],[-10840935,0,-6252184,0,-9610142,0,-9388618,-6201161,-9152087,-6729648,-7499080],[-5937560,0,0,0,0,0,0,0,0,0,-5652839],[-7511121,-11965088,-7907773,-11447458,-5217470,-10271332,-9470305,-6509956,-8676983,-6111820,-7366816]]')
 
@@ -149,7 +201,7 @@ window.renderRayDebugStartingRay = 0
 window.renderRayDebugCurRay = 0
 const v_step = 1 //горизонтальное разрешение
 
-
+window.AnimationFrame = true
 
 window.textures = []
 window.texturesV = []
@@ -166,7 +218,7 @@ for (let clr = 0; clr < window.seg_sqrt*window.seg_sqrt; clr++) {
 
 const TICK = 0;
 
-const CELL_SIZE = 32;
+
 
 const FOV = toRadians(90);//угол обзора
 
@@ -192,23 +244,19 @@ const COLORS = {
 //   clin: "#000000",
 // };
 
-var player = {
-  x: CELL_SIZE * 2.5, //x: CELL_SIZE * 2.5,
-  y: CELL_SIZE * 13, //y: CELL_SIZE * 16,
-  angle: toRadians(-55),
-  speed: 0,
-  rotateSpeed: 0,
-  strifeSpeed: 0,
-};
 
 
-//Где справа между стенками при обратном проходе полоски не прорисовываются
-if (true)
-{
-  player.x = 36.717477171126944
-  player.y = 170.17699802485475
-  player.angle = 0.19634954084938488
-}
+//Где линии рисуются поверх стены
+// if (true)
+// {
+//   player.x = 37.72752928151708
+//   player.y = 285.81060326390923
+//   player.angle = 5.772676500971265
+// }
+  
+
+//{"x":37.72752928151708,"y":285.81060326390923,"angle":5.772676500971265,"speed":0,"rotateSpeed":0,"strifeSpeed":0}
+
 
 //var player = JSON.parse(`{"x":36.717477171126944,"y":170.17699802485475,"angle":0.19634954084938488,"speed":0,"rotateSpeed":0,"strifeSpeed":0}`)
 
@@ -315,12 +363,12 @@ function gameLoop(time) {
     log_rays()
   }
   
-  //window.requestAnimationFrame(gameLoop)
+  if (window.AnimationFrame == true) window.requestAnimationFrame(gameLoop)
   //window.old_time = time
 }
 
-if (window.renderRaysDebug == false) window.gameloop_interval = setInterval(gameLoop, TICK);
-//if (window.renderRaysDebug == false) window.requestAnimationFrame(gameLoop)
+if (window.renderRaysDebug == false && window.AnimationFrame == false) window.gameloop_interval = setInterval(gameLoop, TICK);
+if (window.renderRaysDebug == false && window.AnimationFrame == true) window.requestAnimationFrame(gameLoop)
 
 if (window.renderRaysDebug == true) gameLoop()
 
@@ -632,22 +680,26 @@ function castRay2(angle, i, target_wall, old_right_side) {
           color: vhc.color
         };
 
-        if (window.drawn_grid_lines.indexOf(ray.wall)==-1 || Math.round(i)==0 || Math.round(i)==SCREEN_WIDTH + 1) 
+        var wall_name = ray.wall + ((ray.vertical == true) ? ' v' : ' h')
+        //if (window.slowmotion == true) { RenderRay3D(ray, i);  }
+        
+        if (window.drawn_grid_lines.indexOf(wall_name)==-1 || Math.round(i)==0 || Math.round(i)==SCREEN_WIDTH + 1) 
         {
-          window.drawn_grid_lines.push(ray.wall)
-
+          window.drawn_grid_lines.push(wall_name)
+          //if (window.drawn_grid_lines.indexOf("5 5 v")!=-1) {alert("alert!");debugger;}
           if (typeof(old_right_side) == 'object' && old_right_side == null)
           {
-
+              var draw_full_line = true;
           } else
           {
             y_from_old_ray = SCREEN_HEIGHT / 2 + old_right_side.wall_height / 2 //x:right_i,wall_height:right_height, angle:angle_right
             y_from_new_ray = SCREEN_HEIGHT / 2 + getwallHeight(fixFishEye(ray.distance, ray.angle, player.angle)) / 2
-
-            getWallFromMapCoords(ray, i, (y_from_new_ray - y_from_old_ray > 1))//Горизонтальные линии сетки на полу
-            
-            if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
+            var draw_full_line = (y_from_new_ray - y_from_old_ray > 1)
           }
+
+          getWallFromMapCoords(ray, i, draw_full_line)//Горизонтальные линии сетки на полу. Находит "стену" то есть полоску на полу по одной точке, то есть по лучу и рисует её всю
+          
+          if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
 
         }
 
@@ -675,26 +727,33 @@ function castRay2(angle, i, target_wall, old_right_side) {
           ray_end: vhc.nextX  + "," + vhc.nextY,
           color: vhc.color
         };
+        
+        var wall_name = ray.wall + ((ray.vertical == true) ? ' v' : ' h')
 
-        if (window.drawn_grid_lines.indexOf(ray.wall)==-1 || Math.round(i)==0 || Math.round(i)==SCREEN_WIDTH + 1) 
+        //if (window.slowmotion == true) RenderRay3D(ray, i)
+        
+        if (window.drawn_grid_lines.indexOf(wall_name)==-1 || Math.round(i)==0 || Math.round(i)==SCREEN_WIDTH + 1) 
         {
-          window.drawn_grid_lines.push(ray.wall)
+          window.drawn_grid_lines.push(wall_name)
 
+            
           if (typeof(old_right_side) == 'object' && old_right_side == null)
           {
-
+            var draw_full_line = true;
           } else
           {
             y_from_old_ray = SCREEN_HEIGHT / 2 + old_right_side.wall_height / 2
             y_from_new_ray = SCREEN_HEIGHT / 2 + getwallHeight(fixFishEye(ray.distance, ray.angle, player.angle)) / 2
-            
-            //Когда линия сетки рисуется при полёте в следующий пиксель после рэйскипнутой стенки то по дороге к стенке обнаруживаются линии на полу
-            //тогда если левый конец обнаруженной линии по оси y почти совпадает с игреком правого края рэйскипнутой стенки значит линию можно нарисовать от текущего i
-            //если левый край линии на полу выше нижнего края стенки значит стенка перекрывает этот луч и линию надо тоже нарисовать обрезанную по i
-            //если левый крац линии на полу ниже нижнего края стенки значит она не перекрывает этот луч и его надо нарисовать целиком
-            getWallFromMapCoords(ray, i, (y_from_new_ray - y_from_old_ray > 1))//Вертикальные линии сетки на полу
-            if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
+            var draw_full_line = (y_from_new_ray - y_from_old_ray > 1);
           }
+
+          
+          //Когда линия сетки рисуется при полёте в следующий пиксель после рэйскипнутой стенки то по дороге к стенке обнаруживаются линии на полу
+          //тогда если левый конец обнаруженной линии по оси y почти совпадает с игреком правого края рэйскипнутой стенки значит линию можно нарисовать от текущего i
+          //если левый край линии на полу выше нижнего края стенки значит стенка перекрывает этот луч и линию надо тоже нарисовать обрезанную по i
+          //если левый крац линии на полу ниже нижнего края стенки значит она не перекрывает этот луч и его надо нарисовать целиком
+          getWallFromMapCoords(ray, i, draw_full_line)//Вертикальные линии сетки на полу
+          if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
 
         }
 
@@ -1205,7 +1264,7 @@ function getRays() {
 
 
 
-
+//Линии на полу
 function getWallFromMapCoords(ray, i, draw_full_line)
 {
   if (i>SCREEN_WIDTH) return
@@ -1414,7 +1473,7 @@ function getWallFromMapCoords(ray, i, draw_full_line)
 
   
 
-  RenderRay3D(ray,ray_i)
+  RenderRay3D(ray,ray_i)//кружочки с номером квадранта
   if (wall_right_side.x>SCREEN_WIDTH+1 && i!=SCREEN_WIDTH + 1)
   {
 
@@ -1423,6 +1482,8 @@ function getWallFromMapCoords(ray, i, draw_full_line)
     
     if (i == wall_left_side.x || i == wall_left_side.x+1 || color == "#990000")
     {
+      if (window.beautify == true) color = "#000000"
+
       RenderGridSide({ wall_left_side:wall_left_side, wall_right_side:wall_right_side }, color)//линии обрезанные экраном справа (красные)
 
 
@@ -1431,12 +1492,24 @@ function getWallFromMapCoords(ray, i, draw_full_line)
 
       if (draw_full_line == true)
       {
-        RenderGridSide({ wall_left_side:wall_left_side, wall_right_side:wall_right_side }, "#000000 ")//недорезанные линии которые надо целиком рисовать
+
+        if (window.beautify == true) 
+        {
+          color = "#000000"
+        } else
+        {
+          color = "#000000"
+        }
+          
+
+        RenderGridSide({ wall_left_side:wall_left_side, wall_right_side:wall_right_side }, color)//недорезанные линии которые надо целиком рисовать
       } else
       {
         var ray_distance1 = fixFishEye(ray.distance, ray.angle, player.angle);
         var ray_distance = getwallHeight(ray_distance1)
   
+        if (window.beautify == true) color = "#000000"
+
         RenderGridSide({ wall_left_side:{x:i,wall_height:ray_distance}, wall_right_side:wall_right_side }, color)
       }
     }
@@ -1455,8 +1528,10 @@ function getWallFromMapCoords(ray, i, draw_full_line)
   //debugger
 }
 
+//Это задумывалось как лучи на полу, но что-то они совсем непонятные честно, поэтому рисую с её помощью кружочки с номером квадранта
 function RenderRay3D(ray,ray_i)
 {
+  if (window.beautify == true) { return }
   // var player_distance = 1//поставить игрока на один уровень с линией квадрата, который слева и написать findFirstNonNullArgument(window.rays) - там будет этот distance
   // var player_wall_height_aka_y_3D = getwallHeight(player_distance)
   // var player_i_aka_x_3D = SCREEN_WIDTH/2
@@ -1473,10 +1548,10 @@ function RenderRay3D(ray,ray_i)
   
   var fixed_distance = fixFishEye(ray.distance, ray.angle, player.angle);
   context.strokeStyle = "#00ff00"
-  drawCircle(ray_i,SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2)
+  drawCircle(ray_i,SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2)//кружочек
   
   context.strokeStyle = "#000000"
-  context.strokeText(ray.wall, ray_i, SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2);
+  context.strokeText(ray.wall, ray_i, SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2);//номер квадранта
 
   // context.beginPath();
   // context.moveTo(left_s, left_bottom);
@@ -1534,8 +1609,11 @@ function scanWalls(i,look_direction)
     //var ray = castRay(angle)
     if (i>SCREEN_WIDTH) { renderMinimap(0, 0, 0.75, 0); debugger }
     
-    ray = castRay2(angle, i, undefined, ((typeof(old_right_side)=='undefined') ? null : old_right_side))
+    if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); if (i==908) { alert("alert!"); } debugger }
 
+    //Выпускает луч. В нём так же рисуются линии на полу.
+    ray = castRay2(angle, i, undefined, ((typeof(old_right_side)=='undefined') ? null : old_right_side))
+    
     window.cast_ray_count++
 
 
@@ -1696,9 +1774,10 @@ function scanWalls(i,look_direction)
     {
       var debug_i = i
       close_far_ray_movement = ((ray.distance < window.old_distance) ? "close" : "far")
-      if (i <= SCREEN_WIDTH)
+      
+      if (i <= SCREEN_WIDTH)//Только если i меньше чем SCREEN_WIDTH ему есть куда вперёд ещё скипать
       {
-        //Только если i меньше чем SCREEN_WIDTH ему есть куда вперёд ещё скипать
+        //В ray_skipper рендерятся стены, помимо всего прочего
         i = Math.round(ray_skipper("forward", close_far_ray_movement, forward_jump_occured, i, ray))//возвращает правую границу стены
         old_right_side = window.right_side_from_skipper;
       }
@@ -1750,6 +1829,7 @@ function scanWalls(i,look_direction)
       {
         var debug_i = i
         jump_type = ((ray.distance < window.old_distance) ? "close" : "far")
+        //Тут рендерятся стены помимо всего прочего
         i = Math.round(ray_skipper("backward", close_far_ray_movement, forward_jump_occured, i, ray))
         if (isNaN(i)) debugger
         if (i<0) i=0
@@ -1812,7 +1892,11 @@ function apply_move(mx,my)
     {
       player.y += my
     }
-
+    if (cell_value_x == -1 || cell_value_y == -1)
+    {
+      alert("Exit!")
+      Init()
+    }
     //если в обоих направлениях тупик - никуда не двигаемся
   } else//иначи можно идти
   {
@@ -1954,9 +2038,10 @@ function renderLetters()
 
 // }
 
-
+//Рендеринг линии на полу
 function RenderGridSide(gridSide, color)
 {
+  //Пол
   var left_s = gridSide.wall_left_side.x
   var right_s = gridSide.wall_right_side.x
   var left_bottom = SCREEN_HEIGHT / 2 + gridSide.wall_left_side.wall_height / 2
@@ -1969,18 +2054,22 @@ function RenderGridSide(gridSide, color)
   context.strokeStyle = color;
   context.stroke();
 
-
-  var left_s = gridSide.wall_left_side.x
-  var right_s = gridSide.wall_right_side.x
-  var left_bottom = SCREEN_HEIGHT / 2 - gridSide.wall_left_side.wall_height / 2
-  var right_bottom = SCREEN_HEIGHT / 2 - gridSide.wall_right_side.wall_height / 2
-
-  context.beginPath();
-  context.moveTo(left_s, left_bottom);
-  context.lineTo(right_s, right_bottom);
-  context.closePath();
-  context.strokeStyle = color;
-  context.stroke();
+  //Потолок
+  if (true)
+  {
+    var left_s = gridSide.wall_left_side.x
+    var right_s = gridSide.wall_right_side.x
+    var left_bottom = SCREEN_HEIGHT / 2 - gridSide.wall_left_side.wall_height / 2
+    var right_bottom = SCREEN_HEIGHT / 2 - gridSide.wall_right_side.wall_height / 2
+  
+    if (window.beautify == true) { color = "#555555"}
+    context.beginPath();
+    context.moveTo(left_s, left_bottom);
+    context.lineTo(right_s, right_bottom);
+    context.closePath();
+    context.strokeStyle = color;
+    context.stroke();
+  }
 
   //debugger
 
@@ -2070,7 +2159,16 @@ function renderWall(wall)//отрисовать одну стеночку
           //"rgb("+clr.r+","+clr.g+","+clr.b+")"//"#0000FF";
           context.fill(poly, 'evenodd');
           //рамочка прямоугольников
-          context.strokeStyle = ((monochrome == true) ? "black" : "#00FFFF");
+          
+          if (window.beautify == true)
+          {
+            color = "#000000"
+          } else
+          {
+            color = "#00FFFF"
+          }
+
+          context.strokeStyle = ((monochrome == true) ? "black" : color);
           context.stroke(poly);
 
           //Линии внутри четырёхугольников
