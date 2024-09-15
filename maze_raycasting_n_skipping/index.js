@@ -1,8 +1,12 @@
 //В общем следующая супер задача, нарисовать кружочки в начале и конце каждой линии на полу, только тогда можно будет по ним многоугольники закрашенные
 //на полу нарисовать
 
+//В общем в renderWall нужно нарисовать все кружочки
+
 //Ну и конечно попробовать не запоминать в массив все линии на полу которые были нарисованы чтобы их повторно не рисовать, а в CastRay2 запоминать только
 //последнюю нарисованную полоску и при выходе из него её последнюю рисовать
+
+//Нужно взять все кружочки из полосок на полу и все кружочки из стен, сопоставить их и как-то вычислить из этого всего квадратики на полу
 
 // const map = [
 //   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -104,10 +108,13 @@ function Init()
   window.AnimationFrame = true
   window.minimapVisible = false
 
+  window.beautify = true
+
   window.frame_count = 0;
   window.seconds = Date.now()
   window.CELL_SIZE = 32;
-
+  
+  
 
   var map1 = RoomGen()
   map1.forEach((row, y) => {
@@ -178,7 +185,7 @@ function Init()
   map1[map1_width-2][map1_height-1] = parseInt(0)
   map1[map1_width-2][corridor_length+map1_width] = encode_argb(255,255,255,255)
 
-  //map1[1][0] = encode_argb(255,0,0,0)
+  map1[1][0] = encode_argb(255,0,0,0)
   
 
 
@@ -186,7 +193,7 @@ function Init()
   // map1[9][11] = encode_argb(255,255,255,255)
   // map1[10][11] = encode_argb(255,255,255,255)
 
-  window.beautify = true
+  
   
   
   //const map=map1
@@ -226,6 +233,16 @@ function Init()
     player.angle = 4.9960049838337905
   }
 
+  //Где у стены только два кружочка с координатами а третий почему-то нет
+  if (window.beautify != true)
+    {
+      player.x = 32.08583107480677
+      player.y = 110.6506948781867
+      player.angle = 0.6544984694978931
+    }
+  
+
+  //{"x":32.08583107480677,"y":110.6506948781867,"angle":0.6544984694978931,"speed":0,"rotateSpeed":0,"strifeSpeed":0}
 
 }
 
@@ -381,12 +398,18 @@ function gameLoop(time) {
   window.distances = []
   window.jumps = []
   window.begin_time = Date.now()
+  window.circles = []
+  window.floor_grid = []
   clearScreen();
   
   movePlayer();
   rotatePlayer();
   strifePlayer();
   window.rays = getRays();
+
+  if (window.beautify != true) RenderGrid()
+  
+
   //window.rays.sort();
   //renderScene(window.rays);
   //var reversewalls = []
@@ -399,6 +422,21 @@ function gameLoop(time) {
   //canvas.flush()
   renderMinimap(0, 0, 0.75, time-window.old_time);
   
+  
+if (window.beautify != true)
+{
+  window.circles.forEach(element => {
+    context.strokeStyle = element.color//"#00ff00"
+    drawCircle(element.x,element.y+element.top)//кружочек
+    
+    context.strokeStyle = "#000000"
+    context.strokeText(element.text, element.x, element.y+element.top);//номер квадранта
+  });
+}
+
+
+
+
   if (window.renderRaysDebug == true)
   {
     console.log("Final Rays");
@@ -416,6 +454,7 @@ function gameLoop(time) {
   if (window.AnimationFrame == true) window.requestAnimationFrame(gameLoop)
   //window.old_time = time
 }
+
 
 if (window.renderRaysDebug == false && window.AnimationFrame == false) window.gameloop_interval = setInterval(gameLoop, TICK);
 if (window.renderRaysDebug == false && window.AnimationFrame == true) window.requestAnimationFrame(gameLoop)
@@ -553,6 +592,14 @@ function renderMinimap(posX = 0, posY = 0, scale, time) {
   context.strokeText("FPS " + window.fps, map[0].length * cellSize, cellSize*3.5);
   //context.strokeText("Seconds Count " + , map[0].length * cellSize, cellSize*4);
 
+  var last_line_y = 4
+  window.drawn_grid_lines.forEach(element => {
+    context.strokeText("drawn_grid_line: " + element, map[0].length * cellSize, cellSize*last_line_y);
+    last_line_y += 0.5
+  });
+  //console.log(window.drawn_grid_lines)
+  //debugger
+
 }
 
 function toRadians(deg) {
@@ -679,7 +726,7 @@ function getHCollision(angle) {
 }
 
 
-function castRay2(angle, i, target_wall, old_right_side) {
+  function castRay2(angle, i, target_wall, old_right_side) {
 
   // if (window.target_wall_debug==true && i==1676 && target_wall=='1 9')
   // {
@@ -749,7 +796,7 @@ function castRay2(angle, i, target_wall, old_right_side) {
             var draw_full_line = (y_from_new_ray - y_from_old_ray > 1)
           }
 
-          getWallFromMapCoords(ray, i, draw_full_line)//Горизонтальные линии сетки на полу. Находит "стену" то есть полоску на полу по одной точке, то есть по лучу и рисует её всю
+          getGridLineUsingRayIntersection(ray, i, draw_full_line)//Горизонтальные линии сетки на полу. Находит "стену" то есть полоску на полу по одной точке, то есть по лучу и рисует её всю
           
           if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
 
@@ -804,7 +851,7 @@ function castRay2(angle, i, target_wall, old_right_side) {
           //тогда если левый конец обнаруженной линии по оси y почти совпадает с игреком правого края рэйскипнутой стенки значит линию можно нарисовать от текущего i
           //если левый край линии на полу выше нижнего края стенки значит стенка перекрывает этот луч и линию надо тоже нарисовать обрезанную по i
           //если левый крац линии на полу ниже нижнего края стенки значит она не перекрывает этот луч и его надо нарисовать целиком
-          getWallFromMapCoords(ray, i, draw_full_line)//Вертикальные линии сетки на полу
+          getGridLineUsingRayIntersection(ray, i, draw_full_line)//Вертикальные линии сетки на полу
           if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
 
         }
@@ -1015,16 +1062,21 @@ function ray_skipper(direction, close_far_ray_movement, forward_jump_occured, i,
     var ray_end_y = ray.ray_end.split(",")[1]
     if (ray_end_y<=player.y)//(wall_y<=player_cell_y)
     {
+        
         var wall_right_border_x = (wall_x + 1) * CELL_SIZE
         var wall_right_border_y = (wall_y + 1) * CELL_SIZE
         var wall_left_border_x = (wall_x) * CELL_SIZE
         var wall_left_border_y = (wall_y + 1) * CELL_SIZE
+        var right_x_y = [wall_x + 1, wall_y + 1]
+        var left_x_y = [wall_x, wall_y + 1]
     } else
     {
         var wall_right_border_x = (wall_x) * CELL_SIZE
         var wall_right_border_y = (wall_y) * CELL_SIZE 
         var wall_left_border_x = (wall_x + 1) * CELL_SIZE
         var wall_left_border_y = (wall_y) * CELL_SIZE
+        var right_x_y = [wall_x, wall_y]
+        var left_x_y = [wall_x + 1, wall_y]
     }
 
     //console.log(wall_right_border_x  + " " + wall_right_border_y + " / " + wall_orientation)
@@ -1038,12 +1090,16 @@ function ray_skipper(direction, close_far_ray_movement, forward_jump_occured, i,
         var wall_right_border_y = (wall_y) * CELL_SIZE
         var wall_left_border_x = (wall_x + 1) * CELL_SIZE
         var wall_left_border_y = (wall_y + 1) * CELL_SIZE
+        var right_x_y = [wall_x + 1, wall_y]
+        var left_x_y = [wall_x + 1, wall_y + 1]
     } else
     {
         var wall_right_border_x = (wall_x) * CELL_SIZE
         var wall_right_border_y = (wall_y + 1) * CELL_SIZE
         var wall_left_border_x = (wall_x) * CELL_SIZE
         var wall_left_border_y = (wall_y) * CELL_SIZE
+        var right_x_y = [wall_x, wall_y + 1]
+        var left_x_y = [wall_x, wall_y]
     }
   }
 
@@ -1143,7 +1199,9 @@ function ray_skipper(direction, close_far_ray_movement, forward_jump_occured, i,
   if ((typeof(window.backward_scan_started)=='undefined' || window.backward_scan_started == false))
   {
     if (right_i > numberOfRays) { /*alert('right_i > numberOfRays');*/ debugger; }
-    renderWall({left_side:wall_left_side,right_side:wall_right_side,color:hex_color})
+    renderWall({left_side:wall_left_side,right_side:wall_right_side,color:hex_color}, left_x_y, right_x_y)//ray.wall + ' ' + ((ray.vertical == true) ? 'v' : 'h')
+
+
     window.right_side_from_skipper = wall_right_side
     RenderRay3D2({left_side:wall_left_side,right_side:wall_right_side,color:hex_color})
     if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
@@ -1313,15 +1371,17 @@ function getRays() {
 }
 
 
-
+ 
 
 
 //Линии на полу
-function getWallFromMapCoords(ray, i, draw_full_line)
+function getGridLineUsingRayIntersection(ray, i, draw_full_line)
 {
   if (i>SCREEN_WIDTH) return
   var super_first_i = i;
     
+  if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
+
   //debugger
   var wall_x = parseInt(ray.wall.split(" ")[0])
   var wall_y = parseInt(ray.wall.split(" ")[1])
@@ -1536,7 +1596,7 @@ function getWallFromMapCoords(ray, i, draw_full_line)
     {
       if (window.beautify == true) color = "#000000"
 
-      RenderGridSide({ wall_left_side:wall_left_side, wall_right_side:wall_right_side }, color)//линии обрезанные экраном справа (красные)
+      RenderGridSide({ wall_left_side:wall_left_side, wall_right_side:wall_right_side }, color, ray.wall)//линии обрезанные экраном справа (красные)
 
 
     } else
@@ -1580,6 +1640,8 @@ function getWallFromMapCoords(ray, i, draw_full_line)
   //debugger
 }
 
+
+
 //Это задумывалось как лучи на полу, но что-то они совсем непонятные честно, поэтому рисую с её помощью кружочки с номером квадранта
 function RenderRay3D(ray,ray_i)
 {
@@ -1598,12 +1660,41 @@ function RenderRay3D(ray,ray_i)
   // var left_bottom = SCREEN_HEIGHT / 2 + player_ray_start.wall_height / 2
   // var right_bottom = SCREEN_HEIGHT / 2 + grid_ray_end.wall_height / 2
   
-  var fixed_distance = fixFishEye(ray.distance, ray.angle, player.angle);
-  context.strokeStyle = "#00ff00"
-  drawCircle(ray_i,SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2)//кружочек
+
+
+
+
+
+
+
+
+
+
+
   
-  context.strokeStyle = "#000000"
-  context.strokeText(ray.wall, ray_i, SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2);//номер квадранта
+  var fixed_distance = fixFishEye(ray.distance, ray.angle, player.angle);
+  // context.strokeStyle = "#00ff00"
+  // drawCircle(ray_i,SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2)//кружочек
+  
+  // context.strokeStyle = "#000000"
+  // context.strokeText(ray.wall, ray_i, SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2);//номер квадранта
+
+//  window.circles.push({x:ray_i, y:SCREEN_HEIGHT / 2 + getwallHeight(fixed_distance) / 2, text: ray.wall})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // context.beginPath();
   // context.moveTo(left_s, left_bottom);
@@ -1661,7 +1752,7 @@ function scanWalls(i,look_direction)
     //var ray = castRay(angle)
     if (i>SCREEN_WIDTH) { renderMinimap(0, 0, 0.75, 0); debugger }
     
-    if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); if (i==908) { alert("alert!"); } debugger }
+    if (window.slowmotion == true) { renderMinimap(0, 0, 0.75, window.rays); debugger }
 
     //Выпускает луч. В нём так же рисуются линии на полу.
     ray = castRay2(angle, i, undefined, ((typeof(old_right_side)=='undefined') ? null : old_right_side))
@@ -1989,12 +2080,12 @@ function getwallHeight(dist_ance)
 {
   if (arduino==false)
   {
-    return ((CELL_SIZE * 3) / dist_ance) * 277 //350
+    return (SCREEN_WIDTH * 14.5) / dist_ance
+    //return ((CELL_SIZE * (SCREEN_HEIGHT / SCREEN_WIDTH * 6.3)) / dist_ance) * 277 //350
   } else
   {
     return ((CELL_SIZE * 3) / dist_ance) * 25
   }
-  
 }
 
 function renderLetters()
@@ -2006,7 +2097,7 @@ function renderLetters()
       var el_x = element.split(" ")[0]
       var el_y = element.split(" ")[1]
       var txt_x = el_x * CELL_SIZE + CELL_SIZE/2
-      var txt_y = el_y * CELL_SIZE+ CELL_SIZE/2
+      var txt_y = el_y * CELL_SIZE + CELL_SIZE/2
       var dist = distance(player.x, player.y, txt_x, txt_y)
       
       var angle_new = Math.atan2(txt_y - player.y, txt_x - player.x) //* 180 / Math.PI;
@@ -2099,6 +2190,9 @@ function RenderGridSide(gridSide, color)
   var left_bottom = SCREEN_HEIGHT / 2 + gridSide.wall_left_side.wall_height / 2
   var right_bottom = SCREEN_HEIGHT / 2 + gridSide.wall_right_side.wall_height / 2
 
+  //window.circles.push({x:left_s, y:left_bottom, text: ""})
+  //window.circles.push({x:right_s, y:right_bottom, text: ""})
+
   context.beginPath();
   context.moveTo(left_s, left_bottom);
   context.lineTo(right_s, right_bottom);
@@ -2127,8 +2221,61 @@ function RenderGridSide(gridSide, color)
 
 }
 
+function add_primary_floor_coord(grid_x_y, screen_x, screen_y)
+{
+  var key = grid_x_y.toString()
+  if (typeof(window.floor_grid[key]) == 'undefined') { window.floor_grid[key] = {} }
 
-function renderWall(wall)//отрисовать одну стеночку
+  if (typeof(window.floor_grid[key][key]) == 'undefined')
+  {
+    window.floor_grid[key][key] = [screen_x, screen_y]
+  }
+
+  if (window.map[grid_x_y[1]-1][grid_x_y[0]] == 0)
+  {
+    add_secondary_floor_coord2([grid_x_y[0], grid_x_y[1]-1], grid_x_y, screen_x, screen_y)
+  }
+
+  if (window.map[grid_x_y[1]][grid_x_y[0]-1] == 0)
+  {
+    add_secondary_floor_coord2([grid_x_y[0]-1, grid_x_y[1]], grid_x_y, screen_x, screen_y)
+  }
+
+}
+
+function add_secondary_floor_coord(grid_x_y, screen_x, screen_y)
+{
+  if (window.map[grid_x_y[1]-1][grid_x_y[0]] == 0)
+  {
+    add_secondary_floor_coord2([grid_x_y[0],grid_x_y[1]-1], grid_x_y, screen_x, screen_y)
+  }
+
+  if (window.map[grid_x_y[1]][grid_x_y[0]-1] == 0)
+  {
+    add_secondary_floor_coord2([grid_x_y[0]-1,grid_x_y[1]], grid_x_y, screen_x, screen_y)
+  }
+
+  if (window.map[grid_x_y[1]-1][grid_x_y[0]-1] == 0)
+  {
+    add_secondary_floor_coord2([grid_x_y[0]-1,grid_x_y[1]-1], grid_x_y, screen_x, screen_y)
+  }
+}
+
+
+function add_secondary_floor_coord2(grid_x_y, secondary_x_y, screen_x, screen_y)
+{
+  var grid_key = grid_x_y.toString()
+  var dot_key = secondary_x_y.toString()
+  if (typeof(window.floor_grid[grid_key]) == 'undefined') { window.floor_grid[grid_key] = {} }
+  
+  if (typeof(window.floor_grid[grid_key][dot_key]) == 'undefined')
+  {
+    window.floor_grid[grid_key][dot_key] = [screen_x, screen_y]
+  }
+
+}
+
+function renderWall(wall, left_x_y, right_x_y)//отрисовать одну стеночку
 {
 
   //var wall_left_side = {x:left_i,wall_height:left_height}
@@ -2152,10 +2299,10 @@ function renderWall(wall)//отрисовать одну стеночку
 
         var left_s = wall.left_side.x
         var right_s = wall.right_side.x*v_step
-        var left_top = SCREEN_HEIGHT / 2 - wall.left_side.wall_height / 2
-        var right_top = SCREEN_HEIGHT / 2 - wall.right_side.wall_height / 2
-        var left_bottom = SCREEN_HEIGHT / 2 + wall.left_side.wall_height / 2
-        var right_bottom = SCREEN_HEIGHT / 2 + wall.right_side.wall_height / 2
+        var left_top = window.SCREEN_HEIGHT / 2 - wall.left_side.wall_height / 2
+        var right_top = window.SCREEN_HEIGHT / 2 - wall.right_side.wall_height / 2
+        var left_bottom = window.SCREEN_HEIGHT / 2 + wall.left_side.wall_height / 2
+        var right_bottom = window.SCREEN_HEIGHT / 2 + wall.right_side.wall_height / 2
         var left_height = wall.left_side.wall_height
         var right_height = wall.right_side.wall_height
         
@@ -2197,6 +2344,11 @@ function renderWall(wall)//отрисовать одну стеночку
           poly.lineTo(left_s, left_bottom);//ниж лев
           poly.lineTo(left_s, left_top);//верх лев
           poly.closePath();
+
+
+
+
+
           //заливка прямоугольников
           // if (left_s<0 || right_s<0 || left_top<0 || right_top<0 || left_bottom<0 || right_bottom<0)
           // {
@@ -2223,6 +2375,35 @@ function renderWall(wall)//отрисовать одну стеночку
           context.strokeStyle = ((monochrome == true) ? "black" : color);
           context.stroke(poly);
 
+
+          if (window.map[left_x_y[1]][left_x_y[0]] == 0)
+          {
+            //renderMinimap(0, 0, 0.75);
+            
+            add_primary_floor_coord(left_x_y, left_s, left_bottom)
+
+            window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"lightgreen", top: 0})
+          } else
+          {
+            add_secondary_floor_coord(left_x_y, left_s, left_bottom)
+            
+            window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"red", top: -15})
+          }
+          
+          if (window.map[right_x_y[1]][right_x_y[0]] == 0)
+          {
+            add_primary_floor_coord(right_x_y, right_s, right_bottom)
+            //renderMinimap(0, 0, 0.75);
+            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"blue", top: -30})
+          } else
+          {
+
+            add_secondary_floor_coord(right_x_y, right_s, right_bottom)
+
+            //add_secondary_floor_coord(right_x_y, right_s, right_bottom)
+            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"cyan", top: -45})
+          }
+  
           //Линии внутри четырёхугольников
           // var cells_x=2
           // for (var i1 = 1; i1 < cells_x; i1++) {
@@ -2477,6 +2658,58 @@ function renderWall(wall)//отрисовать одну стеночку
 
 }
 
+function RenderGrid()
+{
+  
+  var grid_cells = Object.keys(window.floor_grid)
+
+  
+  for (let cl_i = 0; cl_i < grid_cells.length; cl_i++) {
+    const cl = grid_cells[cl_i];
+    
+    var dot_count = Object.keys(window.floor_grid[cl]).length
+    if (dot_count == 4)
+    {
+      
+      var cl_split = cl.split(",")
+      var dot1 = cl
+      var dot2 = (parseInt(cl_split[0]) + 1) + "," + parseInt(cl_split[1])
+      var dot3 = (parseInt(cl_split[0]) + 1) + "," + (parseInt(cl_split[1]) + 1)
+      var dot4 = parseInt(cl_split[0]) + "," + (parseInt(cl_split[1]) + 1)
+      
+      var dot1_x = window.floor_grid[cl][dot1][0]
+      var dot1_y = window.floor_grid[cl][dot1][1]
+
+      var dot2_x = window.floor_grid[cl][dot2][0]
+      var dot2_y = window.floor_grid[cl][dot2][1]
+
+      var dot3_x = window.floor_grid[cl][dot3][0]
+      var dot3_y = window.floor_grid[cl][dot3][1]
+
+      var dot4_x = window.floor_grid[cl][dot4][0]
+      var dot4_y = window.floor_grid[cl][dot4][1]
+
+      //Четырёхугольник
+      let poly = new Path2D();
+      poly.moveTo(dot1_x, dot1_y);//верх лев
+      poly.lineTo(dot2_x, dot2_y);//верх прав
+      poly.lineTo(dot3_x, dot3_y);//ниж прав
+      poly.lineTo(dot4_x, dot4_y);//ниж лев
+      poly.lineTo(dot1_x, dot1_y);//верх лев
+      poly.closePath();
+      context.fillStyle = "darkcyan"
+      context.strokeStyle = "cyan";
+      context.fill(poly, 'evenodd');
+      context.stroke(poly);
+    }
+  }
+
+
+
+  
+}
+
+
 function pauseBrowser(millis) {
   var date = Date.now();
   var curDate = null;
@@ -2700,7 +2933,7 @@ document.addEventListener("mousemove", function (event) {
 });
 
 document.addEventListener("mousedown", function (event) {
-  if (document.pointerLockElement != null) window.slowmotion = true
+  if (document.pointerLockElement != null) { window.slowmotion = true; clearScreen() }
 });
 
 
