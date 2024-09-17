@@ -113,7 +113,7 @@ function Init()
   window.frame_count = 0;
   window.seconds = Date.now()
   window.CELL_SIZE = 32;
-  
+  window.player_path = []
   
 
   var map1 = RoomGen()
@@ -394,17 +394,20 @@ function window_on_resize()
 window_on_resize()
 
 function gameLoop(time) {
+  if (window.end_game == true) { return }
   window.walls = []
   window.distances = []
   window.jumps = []
   window.begin_time = Date.now()
   window.circles = []
   window.floor_grid = []
-  clearScreen();
+  
   
   movePlayer();
   rotatePlayer();
   strifePlayer();
+  
+  clearScreen();
   window.rays = getRays();
 
   if (window.beautify != true) RenderGrid()
@@ -486,6 +489,14 @@ function rend()
 }
 
 function renderMinimap(posX = 0, posY = 0, scale, time) {
+
+  var player_path_dot = {x:posX + player.x * scale - 10 / 2, y:posY + player.y * scale - 10 / 2}
+  
+  if (JSON.stringify(window.player_path[window.player_path.length-1]) != JSON.stringify(player_path_dot))
+  {
+     window.player_path.push(player_path_dot)
+  }
+
   if (arduino == true) return
   if (window.minimapVisible == false) return
   const cellSize = scale * CELL_SIZE;
@@ -566,6 +577,8 @@ function renderMinimap(posX = 0, posY = 0, scale, time) {
     10
   );
 
+
+
   context.strokeStyle = "blue";
   context.beginPath();
   context.moveTo(player.x * scale, player.y * scale);
@@ -591,6 +604,22 @@ function renderMinimap(posX = 0, posY = 0, scale, time) {
   
   context.strokeText("FPS " + window.fps, map[0].length * cellSize, cellSize*3.5);
   //context.strokeText("Seconds Count " + , map[0].length * cellSize, cellSize*4);
+
+
+
+  context.strokeStyle = "blue";
+  context.beginPath();
+  context.moveTo(window.player_path[0].x, window.player_path[0].y);
+  
+  window.player_path.forEach(element => {
+    context.lineTo(
+      element.x,
+      element.y
+    );
+  });
+
+  //context.closePath();
+  context.stroke();
 
   var last_line_y = 4
   window.drawn_grid_lines.forEach(element => {
@@ -2037,8 +2066,17 @@ function apply_move(mx,my)
     }
     if (cell_value_x == -1 || cell_value_y == -1)
     {
-      //alert("Exit!")
-      Init()
+      //renderMinimap(0, 0, 0.75, window.rays)
+      if (window.end_game == true) { return }
+      window.end_game = true; window.minimapVisible = true; renderMinimap(0, 0, 0.75, window.rays);
+
+      setTimeout(function () { alert("Exited!"); window.end_game = false; Init(); window.requestAnimationFrame(gameLoop);   }, 10)
+      
+      
+      //renderMinimap(0, 0, 0.75, window.rays);
+      //alert("Finish!");
+      //Init();
+
     }
     //если в обоих направлениях тупик - никуда не двигаемся
   } else//иначи можно идти
@@ -2080,7 +2118,8 @@ function getwallHeight(dist_ance)
 {
   if (arduino==false)
   {
-    return (SCREEN_WIDTH * 14.5) / dist_ance
+    var aspect = ((SCREEN_WIDTH > SCREEN_HEIGHT) ? ((SCREEN_HEIGHT / SCREEN_WIDTH < 0.37) ? SCREEN_HEIGHT * 40 : SCREEN_WIDTH * 14.5) : SCREEN_WIDTH * 14.5)
+    return aspect / dist_ance
     //return ((CELL_SIZE * (SCREEN_HEIGHT / SCREEN_WIDTH * 6.3)) / dist_ance) * 277 //350
   } else
   {
@@ -2387,21 +2426,21 @@ function renderWall(wall, left_x_y, right_x_y)//отрисовать одну с
           {
             add_secondary_floor_coord(left_x_y, left_s, left_bottom)
             
-            window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"red", top: -15})
+            window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"red", top: -0})
           }
           
           if (window.map[right_x_y[1]][right_x_y[0]] == 0)
           {
             add_primary_floor_coord(right_x_y, right_s, right_bottom)
             //renderMinimap(0, 0, 0.75);
-            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"blue", top: -30})
+            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"blue", top: -15})
           } else
           {
 
             add_secondary_floor_coord(right_x_y, right_s, right_bottom)
 
             //add_secondary_floor_coord(right_x_y, right_s, right_bottom)
-            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"cyan", top: -45})
+            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"cyan", top: -15})
           }
   
           //Линии внутри четырёхугольников
