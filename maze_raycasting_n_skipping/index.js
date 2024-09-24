@@ -114,6 +114,7 @@ function Init()
   window.seconds = Date.now()
   window.CELL_SIZE = 32;
   window.player_path = []
+  window.player_path_25d = []
   
 
   var map1 = RoomGen()
@@ -240,7 +241,13 @@ function Init()
       player.y = 110.6506948781867
       player.angle = 0.6544984694978931
     }
+
+    //player.x = 529.25372351893
+    //player.y = 207.1803296543152
+    //player.angle = 4.350233160595874
   
+    //{"x":529.25372351893,"y":207.1803296543152,"angle":4.350233160595874,"speed":0,"rotateSpeed":0,"strifeSpeed":0}
+    //{"x":500.4700224975723,"y":198.65265475121714,"angle":4.67311907221482,"speed":0,"rotateSpeed":0,"strifeSpeed":0}
 
   //{"x":32.08583107480677,"y":110.6506948781867,"angle":0.6544984694978931,"speed":0,"rotateSpeed":0,"strifeSpeed":0}
 
@@ -408,6 +415,9 @@ function gameLoop(time) {
   strifePlayer();
   
   clearScreen();
+
+  render_25d_path();
+
   window.rays = getRays();
 
   if (window.beautify != true) RenderGrid()
@@ -459,6 +469,38 @@ if (window.beautify != true)
 }
 
 
+function render_25d_path()
+{
+  context.strokeStyle = "blue";
+  context.beginPath();
+
+  var path_begin = false
+
+  window.player_path_25d.forEach(element => {
+  var _25d_x_y = map_x_y_to_25d_x_y(element.x, element.y)
+  if (_25d_x_y != null)
+  {
+    if (path_begin == false)
+    {
+      context.moveTo(_25d_x_y[0], _25d_x_y[1]);
+      path_begin = true
+    }
+    
+    //context.strokeStyle = "#000000"
+    //drawCircle(_25d_x_y[0], _25d_x_y[1])//кружочек
+    
+    context.lineTo(
+      _25d_x_y[0],
+      _25d_x_y[1]
+    );
+  }
+  });
+
+  context.stroke();
+}
+
+
+
 if (window.renderRaysDebug == false && window.AnimationFrame == false) window.gameloop_interval = setInterval(gameLoop, TICK);
 if (window.renderRaysDebug == false && window.AnimationFrame == true) window.requestAnimationFrame(gameLoop)
 
@@ -490,14 +532,33 @@ function rend()
 
 function renderMinimap(posX = 0, posY = 0, scale, time) {
 
+
+
+
+
+
+
   var player_path_dot = {x:posX + player.x * scale - 10 / 2, y:posY + player.y * scale - 10 / 2}
+  var player_path_25d_dot = {x:player.x, y:player.y}
   
   if (JSON.stringify(window.player_path[window.player_path.length-1]) != JSON.stringify(player_path_dot))
   {
      window.player_path.push(player_path_dot)
   }
 
+  if (JSON.stringify(window.player_path_25d[window.player_path_25d.length-1]) != JSON.stringify(player_path_25d_dot))
+  {
+     window.player_path_25d.push(player_path_25d_dot)
+  }
+
   if (arduino == true) return
+  
+
+
+
+
+
+
   if (window.minimapVisible == false) return
   const cellSize = scale * CELL_SIZE;
   map.forEach((row, y) => {
@@ -607,6 +668,24 @@ function renderMinimap(posX = 0, posY = 0, scale, time) {
 
 
 
+  //var d25 = dot25d(rd[0],rd[1])
+  //x: , y: 
+  
+
+  context.strokeText("player_angle " + toDegrees(player.angle), map[0].length * cellSize, cellSize*4);
+  //context.strokeText("dot_angle " + toDegrees(rd[0]), map[0].length * cellSize, cellSize*4.5);
+  //context.strokeText("dot_distance " + rd[1], map[0].length * cellSize, cellSize*5);
+
+  context.strokeText("initialAngle " + (toDegrees(corr(player.angle - FOV / 2))+180), map[0].length * cellSize, cellSize*5.5);
+  context.strokeText("finalAngle " + (toDegrees(corr(player.angle + FOV / 2))+180), map[0].length * cellSize, cellSize*6);
+  //context.strokeText("angle_diff " + toDegrees(angle_diff_radians(window.initialAngle, rd[0])), map[0].length * cellSize, cellSize*6.5);
+  
+
+
+
+
+  //corr(player.angle - FOV / 2);
+
   context.strokeStyle = "blue";
   context.beginPath();
   context.moveTo(window.player_path[0].x, window.player_path[0].y);
@@ -621,15 +700,106 @@ function renderMinimap(posX = 0, posY = 0, scale, time) {
   //context.closePath();
   context.stroke();
 
-  var last_line_y = 4
-  window.drawn_grid_lines.forEach(element => {
-    context.strokeText("drawn_grid_line: " + element, map[0].length * cellSize, cellSize*last_line_y);
-    last_line_y += 0.5
-  });
+  //context.closePath();
+  
+
+  //context.strokeStyle = "#000000"
+  //drawCircle(_25d_x_y[0], _25d_x_y[1])//кружочек
+
+  
+  context.stroke();
+
+  //var last_line_y = 4
+  //window.drawn_grid_lines.forEach(element => {
+  //  context.strokeText("drawn_grid_line: " + element, map[0].length * cellSize, cellSize*last_line_y);
+  //  last_line_y += 0.5
+  //});
+
+
   //console.log(window.drawn_grid_lines)
   //debugger
 
+  
+
 }
+
+function map_x_y_to_25d_x_y(map_x, map_y)
+{
+  var rd = dotAngDist(map_x, map_y)
+
+  var dot_diff = angle_diff_radians(window.initialAngle, rd[0])
+  if (dot_diff>0 - FOV/10 && dot_diff < FOV + FOV/10)
+  {
+    var dot_i = dot_diff / window.angleStep
+    
+    //context.strokeText("dot_i " + dot_i, map[0].length * cellSize, cellSize*7);
+
+    var dot_distance = fixFishEye(rd[1], rd[0], player.angle)
+
+    return [dot_i, SCREEN_HEIGHT / 2 + getwallHeight(dot_distance) / 2]
+
+
+  } else
+  {
+    return null
+  }
+}
+
+
+function dotAngDist(x, y)
+{
+
+  angle = corr(window.initialAngle + i * angleStep);
+
+  const right = Math.abs(Math.floor((player.angle - Math.PI / 2) / Math.PI) % 2); //сцена 360 градусов делится 2 половины, одна будет выдавать 1, вторая 0.
+  
+  
+    nextX = right
+    ? Math.floor(player.x / CELL_SIZE) * CELL_SIZE + CELL_SIZE //при right=0 - абсолютный x игрока умножается на CELL_SIZE и прибавляется CELL_SIZE - координата x правой сторны клетки в которой находится player
+    : Math.floor(player.x / CELL_SIZE) * CELL_SIZE; //при right=1 - абсолютный x игрока умножается на CELL_SIZE - координата x левой стороны клетки в которой находится player
+    nextY = player.y + (nextX - player.x) * Math.tan(player.angle);
+
+    var kx = x - player.x
+    var ky = y - player.y
+    //var g = (Math.sqrt(kx) + Math.sqrt(ky))
+    //var sin_alpha = ky / g
+    //var cos_alpha = kx / g
+
+    angle_dot = corr(Math.atan2(ky, kx)-Math.PI) + Math.PI
+    dot_distance = distance(player.x, player.y, x, y)
+
+    return [angle_dot,dot_distance]
+}
+
+function dot25d(ang, dist)
+{
+  if (angle_is_in_field_of_view(ang))
+  {
+    
+  }
+
+  angle = corr(window.initialAngle + i * angleStep);
+
+  const right = Math.abs(Math.floor((player.angle - Math.PI / 2) / Math.PI) % 2); //сцена 360 градусов делится 2 половины, одна будет выдавать 1, вторая 0.
+  
+  
+    nextX = right
+    ? Math.floor(player.x / CELL_SIZE) * CELL_SIZE + CELL_SIZE //при right=0 - абсолютный x игрока умножается на CELL_SIZE и прибавляется CELL_SIZE - координата x правой сторны клетки в которой находится player
+    : Math.floor(player.x / CELL_SIZE) * CELL_SIZE; //при right=1 - абсолютный x игрока умножается на CELL_SIZE - координата x левой стороны клетки в которой находится player
+    nextY = player.y + (nextX - player.x) * Math.tan(player.angle);
+
+    var kx = x - player.x
+    var ky = y - player.y
+    //var g = (Math.sqrt(kx) + Math.sqrt(ky))
+    //var sin_alpha = ky / g
+    //var cos_alpha = kx / g
+  
+    angle_dot = Math.atan2(ky, kx) + Math.PI
+    dot_distance = distance(player.x, player.y, x, y)
+
+    return [angle_dot,dot_distance]
+}
+
 
 function toRadians(deg) {
   return (deg * Math.PI) / 180;
@@ -755,7 +925,7 @@ function getHCollision(angle) {
 }
 
 
-  function castRay2(angle, i, target_wall, old_right_side) {
+function castRay2(angle, i, target_wall, old_right_side) {
 
   // if (window.target_wall_debug==true && i==1676 && target_wall=='1 9')
   // {
@@ -921,22 +1091,24 @@ function getVCollisionNext(angle, nextX, nextY) {
 
   do {
 
-    const right = Math.abs(Math.floor((angle - Math.PI / 2) / Math.PI) % 2);
-    if (typeof(nextX)=='undefined' &&  typeof(nextY)=='undefined')
+    const right = Math.abs(Math.floor((angle - Math.PI / 2) / Math.PI) % 2); //сцена 360 градусов делится 2 половины, одна будет выдавать 1, вторая 0.
+    
+    if (typeof(nextX)=='undefined' && typeof(nextY)=='undefined') //инициализация начальных nextX nextY
     {
       nextX = right
-      ? Math.floor(player.x / CELL_SIZE) * CELL_SIZE + CELL_SIZE //при right=0 - координата x правой сторны клетки в которой находится player
-      : Math.floor(player.x / CELL_SIZE) * CELL_SIZE;//при right=1 - x левой стороны клетки в которой находится player
+      ? Math.floor(player.x / CELL_SIZE) * CELL_SIZE + CELL_SIZE //при right=0 - абсолютный x игрока умножается на CELL_SIZE и прибавляется CELL_SIZE - координата x правой сторны клетки в которой находится player
+      : Math.floor(player.x / CELL_SIZE) * CELL_SIZE; //при right=1 - абсолютный x игрока умножается на CELL_SIZE - координата x левой стороны клетки в которой находится player
       nextY = player.y + (nextX - player.x) * Math.tan(angle);
     } else
     {
       const xA = right ? CELL_SIZE : -CELL_SIZE;//x movement untill next square
       const yA = xA * Math.tan(angle);//y movement untill next square
-
+      
       nextX += xA;
       nextY += yA;
     }
-
+    
+    //абсолютные координаты клетки в которую пришёл луч
     const cellX = right ? Math.floor(nextX / CELL_SIZE) : Math.floor(nextX / CELL_SIZE) - 1;
     const cellY = Math.floor(nextY / CELL_SIZE);
 
@@ -1330,6 +1502,20 @@ function angle_diff(ang1, ang2)
 }
 
 
+function angle_diff_radians(ang1, ang2)
+{
+  if (Math.abs(ang1 - ang2) > Math.PI)
+  {
+    if (ang1 > ang2) { ang2 += Math.PI*2 } else { ang2 -= Math.PI*2 }
+  }
+
+  return ang2 - ang1
+}
+
+function angle_is_in_field_of_view(ang)
+{
+  
+}
 
 
 
