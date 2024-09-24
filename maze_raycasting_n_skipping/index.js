@@ -141,7 +141,7 @@ function Init()
   });
   
   
-  map1 = new MazeBuilder(5, 5);
+  map1 = new MazeBuilder(7, 7);
   
   map1 = map1.maze
   
@@ -165,7 +165,7 @@ function Init()
     
     for (let i = 0; i < map1_height; i++) {
 
-      if (i==9)
+      if (i==map1_height-2)
       {
         map1[i][ii] = parseInt(0);
       } else if (i>=1 && i<=map1_height-4 && ii != corridor_length+map1_width)
