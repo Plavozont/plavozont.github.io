@@ -436,15 +436,25 @@ function gameLoop(time) {
   renderMinimap(0, 0, 0.75, time-window.old_time);
   
   
+
 if (window.beautify != true)
 {
   window.circles.forEach(element => {
-    context.strokeStyle = element.color//"#00ff00"
-    drawCircle(element.x,element.y+element.top)//кружочек
-    
-    context.strokeStyle = "#000000"
-    context.strokeText(element.text, element.x, element.y+element.top);//номер квадранта
+    context.strokeStyle = "#0000ff"//element.color
+
+    var _25d = map_x_y_to_25d_x_y(element.x, element.y)
+    if (_25d != null) 
+    {
+      drawCircle(_25d[0],_25d[1])//кружочек
+      context.strokeStyle = "#000000"
+      context.strokeText(element.text, element.x, element.y+element.top);//номер квадранта
+    }
+
   });
+
+
+
+
 }
 
 
@@ -1304,6 +1314,9 @@ function ray_skipper(direction, close_far_ray_movement, forward_jump_occured, i,
     }
   }
 
+
+  window.circles.push({x:wall_left_border_x, y:wall_left_border_y, text: "", color:"black", top: 0})
+  window.circles.push({x:wall_right_border_x, y:wall_right_border_y, text: "", color:"black", top: 0})
 
  
   var ray_i = i
@@ -2601,34 +2614,42 @@ function renderWall(wall, left_x_y, right_x_y)//отрисовать одну с
           context.stroke(poly);
 
 
-          if (window.map[left_x_y[1]][left_x_y[0]] == 0)
+          if (false)
           {
-            //renderMinimap(0, 0, 0.75);
             
-            add_primary_floor_coord(left_x_y, left_s, left_bottom)
-
-            window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"lightgreen", top: 0})
-          } else
-          {
-            add_secondary_floor_coord(left_x_y, left_s, left_bottom)
-            
-            window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"red", top: -0})
-          }
-          
-          if (window.map[right_x_y[1]][right_x_y[0]] == 0)
-          {
-            add_primary_floor_coord(right_x_y, right_s, right_bottom)
-            //renderMinimap(0, 0, 0.75);
-            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"blue", top: -15})
-          } else
-          {
-
-            add_secondary_floor_coord(right_x_y, right_s, right_bottom)
-
-            //add_secondary_floor_coord(right_x_y, right_s, right_bottom)
-            window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"cyan", top: -15})
-          }
+            if (window.map[left_x_y[1]][left_x_y[0]] == 0)
+            {
+              //renderMinimap(0, 0, 0.75);
+              
+              add_primary_floor_coord(left_x_y, left_s, left_bottom)
   
+              window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"lightgreen", top: 0})
+            } else
+            {
+              add_secondary_floor_coord(left_x_y, left_s, left_bottom)
+              
+              window.circles.push({x:left_s, y:left_bottom, text: left_x_y, color:"red", top: -0})
+            }
+            
+            if (window.map[right_x_y[1]][right_x_y[0]] == 0)
+            {
+              add_primary_floor_coord(right_x_y, right_s, right_bottom)
+              //renderMinimap(0, 0, 0.75);
+              window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"blue", top: -15})
+            } else
+            {
+  
+              add_secondary_floor_coord(right_x_y, right_s, right_bottom)
+  
+              //add_secondary_floor_coord(right_x_y, right_s, right_bottom)
+              window.circles.push({x:right_s, y:right_bottom, text: right_x_y, color:"cyan", top: -15})
+            }
+          }
+
+
+  
+
+
           //Линии внутри четырёхугольников
           // var cells_x=2
           // for (var i1 = 1; i1 < cells_x; i1++) {
