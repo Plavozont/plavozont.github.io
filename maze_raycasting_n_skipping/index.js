@@ -3183,6 +3183,23 @@ document.addEventListener("mousedown", function (event) {
 });
 
 
+document.addEventListener('touchstart', (event) => {
+  window.active_touch = {}
+  
+  console.log('Вы приложили палец к элементу')
+  console.log(event)
+})
+
+document.addEventListener('touchmove', (event) => {
+  console.log('По мне ведут пальцем')
+  console.log(event)
+})
+
+document.addEventListener('touchend', (event) => {
+  console.log('Прикосновение закончено')
+  console.log(event)
+})
+
 
 //https://habr.com/ru/post/523440/?ysclid=l6303xvge2523552793
 function cross(x1, y1, x2, y2, x3, y3, x4, y4) {
