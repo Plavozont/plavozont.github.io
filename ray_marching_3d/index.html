@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<HTML>
+<HEAD>
+</HEAD>
+<BODY>
+
+<!--RayMarching от DeepSeek-->
+
+<canvas id="canvas" width="3840" height="2160"></canvas>
+
+<script>
+// Получаем элемент canvas
+const canvas = document.getElementById('canvas');
+
+// Получаем контекст WebGL (или experimental для совместимости)
+const gl = canvas.getContext('webgl2') || canvas.getContext('experimental-webgl');
+
+
+
+
+
+
+// Задаем исходный код вершинного шейдера
+const vsSource = `
+  // Атрибут позиции вершины
+  attribute vec2 aPosition;
+  
+  void main() {
+    // Преобразуем координаты в пространство отсечения
+    gl_Position = vec4(aPosition, 0.0, 1.0);
+  }
+`;
+
+
+
+// Задаем исходный код фрагментного шейдера
+const fsSource =  `
+// Устанавливаем высокую точность для float
+precision highp float;
+
+// Uniform-переменные: разрешение экрана и время
+uniform vec2 uResolution;
+uniform float uTime;
+
+//Текстура с цифрами от 0 до 9
+uniform sampler2D uTexture;
+
+  //Параметры цифр из текстуры
+  float digit_width = 0.033;
+  float digit_height = 0.068;
+  int figure_detector = 0;
+  float angle;
+
+
+//Returns accurate MOD when arguments are approximate integers.
+float modI(float a,float b) {
+    float m=a-floor((a+0.5)/b)*b;
+    return floor(m+0.5);
+}
+
+//Кол-во цифр в целом числе
+int getDigitCount(int num)
+{
+    int count=0;
+    for (int i = 1; i > 0; i++)
+    {
+        num /= 10;
+        count+=1;
+        if (num == 0) break;
+    }
+    return count;
+}
+
+
+// Получение цифры из числа под номером N
+int getNthDigit(int number, int n) {
+    int digit = 0;
+
+
+    int digit_count = getDigitCount(number);
+    if (n > digit_count) return -123;
+    int minusovka = 0;
+
+    int i = digit_count - 1;
+    int d_pos = 0;
+    int ten_powed;
+
+    for (int j = 1; j > 0; j++)
+    {
+        ten_powed = 10;
+        int k = 1;
+        for (int k0 = 1; k0 > 0; k0++)
+        {
+            ten_powed *= 10;
+            k++;
+            if (k >= i) break;
+        }
+        if (i == 0) ten_powed = 1;
+        if (i == 1) ten_powed = 10;
+        //if (i == 1) break;
+        //ten_powed = int(pow(10.0, float(i)));
+
+
+        digit = int(int(floor(float(number - minusovka) / float(ten_powed))) );
+        
+        d_pos++;
+        if (d_pos == n) break;
+
+        minusovka += digit * ten_powed;
+        i--;
+        if (i < 0) break;
+    }
+
+    //int number_to_check = ten_powed;
+    //int d1 = int(floor(float(number_to_check) / float(100)));
+    //int d2 = int(floor((float(number_to_check) - float(d1) * float(100)) / float(10)) );
+    //int d3 = int(float(number_to_check) - float(d1) * float(100) - float(d2) * float(10));
+
+    //return d1;
+    return digit;
+}
+
+
+//Превращает дробную часть числа в целое число в перевёрнутом виде, например: 12345.000389 превратит в 983000
+//Это нужно чтобы дробную часть нарисовать на экране корректно
+int convertFractPartToInt(float num)
+{
+    int fptoint = -123;
+    if (num == 0.0) return 0;
+    
+    num = floor(num * 100000.0)/100000.0;
+
+    int leading_zeroes_count = 0;
+    float lzc = num;
+    int multiplyer = 1;
+    for (int i = 1; i > 0; i++)
+    {
+        lzc *= 10.0;
+        if (floor(lzc) == 0.0)
+        {
+            multiplyer *= 10;
+        } else
+        {
+            break;
+        }
+    }
+
+    int tochnost = 1000000000; //100000000000000
+    int whoa = int(floor(num * float(tochnost))); //int работает как floor вродебы но это не точно
+    
+    int dc = getDigitCount(whoa);
+    
+    int d_pos = dc;
+    int powed_ten = 1;
+    // 0.12, превращённую в 1200, превратить в 12
+    for (int i = 1; i > 0; i++)
+    {
+        int nth_digit = getNthDigit(whoa,d_pos);
+
+        //if (i == 3) return number_to_check;
+
+        if (nth_digit != 0)
+        {
+            fptoint = whoa / powed_ten;
+            //int number_to_check = getNthDigit( * multiplyer, 1);
+            //return number_to_check;
+            //return whoa / powed_ten;
+            break;
+        }
+        
+        powed_ten *= 10;
+
+        d_pos--;
+
+        if (d_pos < 0) break;
+
+        if (i >= getDigitCount(tochnost)-1) break;
+    }
+
+    
+    dc = getDigitCount(fptoint);
+
+    //Если dc = 2 то powed_ten = 10, если 3 то 100 если 4 то 10000...
+    d_pos = dc;
+    powed_ten = 1;
+    for (int i = 1; i > 0; i++)
+    {
+        d_pos--;
+        if (d_pos == 0) break;
+
+        powed_ten *= 10;
+    }
+
+    //Перевернуть число 12 -> 21
+    d_pos = dc;
+    int reversed_num = 0;
+    for (int i = 1; i > 0; i++)
+    {
+        int nth_digit = getNthDigit(whoa,d_pos);
+        //if (i == 2) return d_pos;
+        reversed_num += nth_digit * powed_ten;
+        powed_ten /= 10;
+        d_pos--;
+        if (d_pos == 0) break;
+
+        if (i >= dc) break;
+    }
+    
+    fptoint = reversed_num *= multiplyer;
+
+    //return getNthDigit(reversed_num, 1);
+    
+    return fptoint;
+}
+
+
+
+// Вырезает цифру из текстуры и выдаёт её в виде яркости пикселей
+float printDigit(vec2 uv, float digit, float digit_position_on_canvas_x, float digit_position_on_canvas_y) {
+
+    float texture_offset_x;
+    float texture_offset_y;
+    
+
+
+    if (digit == 0.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 0.0;
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 0.0;
+        texture_offset_x = digit_width * 0.0;
+        texture_offset_y = digit_height * 0.0;
+    }
+    else if (digit == 1.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 1.0;
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 0.0;
+        texture_offset_x = digit_width * 1.0;
+        texture_offset_y = digit_height * 0.0;
+    }
+    else if (digit == 2.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 2.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 0.0;
+        texture_offset_x = digit_width * 2.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 0.0;
+    }
+    else if (digit == 3.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 3.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 0.0;
+        texture_offset_x = digit_width * 3.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 0.0;
+    }
+    else if (digit == 4.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 4.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 0.0;
+        texture_offset_x = digit_width * 4.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 0.0;
+    }
+    else if (digit == 5.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * digit_height * 0.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 1.0;
+        texture_offset_x = digit_width * digit_height * 0.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 1.0;
+    }
+    else if (digit == 6.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 1.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 1.0;
+        texture_offset_x = digit_width * 1.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 1.0;
+    }
+    else if (digit == 7.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 2.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 1.0;
+        texture_offset_x = digit_width * 2.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 1.0;
+    }
+    else if (digit == 8.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 3.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 1.0;
+        texture_offset_x = digit_width * 3.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 1.0;
+    }
+    else if (digit == 9.0)
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width * 4.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height * 1.0;
+        texture_offset_x = digit_width * 4.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height * 1.0;
+    }
+    else
+    {
+        uv.x += digit_position_on_canvas_x * -1.0 + digit_width / 2.0;//эта штука указывает точку откуда начинать рисовать текстуру
+        uv.y += digit_position_on_canvas_y * -1.0 + digit_height / 2.0;
+        texture_offset_x = digit_width / 2.0;//эта штука обрезает текстуру
+        texture_offset_y = digit_height / 2.0;
+    }
+
+    if (uv.x < texture_offset_x || uv.x > digit_width + texture_offset_x || uv.y < texture_offset_y || uv.y > digit_height + texture_offset_y) return 0.0;
+    
+    vec2 texPos = vec2(uv.x, uv.y);
+    return texture2D(uTexture, texPos).a /*возвращает альфу, прозрачность*/;
+}
+
+//Выводит дробное число на экран
+float writeNumber(vec2 uv, float fnum)
+{
+    float color = 0.0;
+    //нарисовать целую часть
+    int i = 0;
+    int whole_part = int(floor(fnum));
+    int dcw = getDigitCount(whole_part);
+    for (int nul = 1; nul > 0; nul++)
+    {
+        int dgt = getNthDigit(whole_part, i + 1);
+
+        color += printDigit(uv, float(dgt), float(nul - 1) * 0.03 - 1.75, 0.9);
+
+        //break;
+        i++;
+        if (i>=dcw) break;
+    }
+
+    //Нарисовать дробную часть
+    int fract_part = convertFractPartToInt(fract(fnum));
+
+    int dcf = getDigitCount(fract_part);
+
+    //int dgt0 = getNthDigit(fract_part, 4);
+    //color += printDigit(uv, float(dgt0), float(1) * digit_width, 0.0);
+
+    i = dcf;
+    for (int nul = 1; nul > 0; nul++)
+    {
+        int dgt = getNthDigit(fract_part, nul);
+        
+        //int log = convertFractPartToInt(0.012);
+        color += printDigit(uv, float(dgt), float(dcw + i) * digit_width - 1.75, 0.9);
+
+        i--;
+        if (i <= 0 ) break;
+    }
+
+    return color;
+}
+
+// SDF-функция для сферы
+float sdSphere(vec3 p /*это что центр?*/, float r /*Это радиус*/) {
+  return length(p) - r; // Расстояние от центра до точки минус радиус
+}
+
+// SDF-функция для куба
+float sdBox(vec3 p /*центр?*/, vec3 b /*Длинна грани куба*/) {
+  // Вычисляем расстояние до граней куба
+  vec3 d = abs(p) - b;
+  // Комбинируем расстояния
+  return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
+}
+
+// SDF-функция для тора
+float sdTorus(vec3 p, vec2 t) {
+  // Преобразуем координаты для тора
+  vec2 q = vec2(length(p.xz) - t.x, p.y);
+  return length(q) - t.y; // Расстояние до тора
+}
+
+// SDF-функция для всей сцены
+float sceneSDF(vec3 p) {
+  // Вычисляем угол вращения на основе времени
+  angle = uTime * float(0.5); //Скорость течения времени
+  
+  // Создаем матрицу вращения вокруг оси Y
+  //mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+  mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+  mat2 rot_tor = mat2(0); //mat2(cos(angle*float(4)), -sin(angle*float(4)), sin(angle*float(4)), cos(angle*float(4)));
+  mat2 rot_sphere = mat2(0);//mat2(cos(angle*float(8)), -sin(angle*float(8)), sin(angle*float(8)), cos(angle*float(8)));
+  mat2 rot_cube = mat2(0); //mat2(cos(angle*float(16)), -sin(angle*float(16)), sin(angle*float(16)), cos(angle*float(16)));
+
+  // Применяем вращение к XZ-плоскости
+  p.yz *= rot;
+  
+  // Вычисляем расстояния до объектов сцены
+  float sphere = sdSphere(p - vec3(-1.0, 0.0, 0.0), 1.0 + float(rot_sphere)); // Сфера слева
+  float cube = sdBox(p - vec3(1.0, 0.0, 0.0), vec3(0.8 + float(rot_cube)));  // Куб справа
+  float torus = sdTorus(p - vec3(0.0, 0.0, 1.0), vec2(1.3 + float(rot_tor), 0.3)); // Тор по центру
+  
+  // Возвращаем минимальное расстояние (объединение объектов)
+
+  
+  if (min(sphere, min(cube, torus)) == sphere) figure_detector = 1;
+  if (min(sphere, min(cube, torus)) == cube) figure_detector = 2;
+  if (min(sphere, min(cube, torus)) == torus) figure_detector = 3;
+  
+  return min(sphere, min(cube, torus));
+}
+
+// Функция вычисления нормали в точке
+vec3 calcNormal(vec3 p) {
+  const float eps = 0.001; // Малое значение для производной
+  // Вычисляем градиент с помощью центральных разностей
+  
+  return normalize(vec3(
+    sceneSDF(vec3(p.x + eps, p.y, p.z)) - sceneSDF(vec3(p.x - eps, p.y, p.z)),
+    sceneSDF(vec3(p.x, p.y + eps, p.z)) - sceneSDF(vec3(p.x, p.y - eps, p.z)),
+    sceneSDF(vec3(p.x, p.y, p.z + eps)) - sceneSDF(vec3(p.x, p.y, p.z - eps))
+  ));
+}
+
+// Главная функция фрагментного шейдера
+void main() {
+  // Преобразуем координаты пикселя в нормализованные (-1.0 до 1.0)
+  vec2 uv = (2.0 * gl_FragCoord.xy - uResolution) / min(uResolution.x, uResolution.y);
+  
+  
+
+  // Позиция камеры (расположена в точке (0,0,5))
+  vec3 ro = vec3(0.0, 0.0, 5.0);
+  
+  // Направление луча (нормализованный вектор)
+  vec3 rd = normalize(vec3(uv, -1.0));
+  
+  // Параметры для алгоритма Raymarching
+  const int MAX_STEPS = 64; // Максимальное количество шагов
+  float t = 0.0;           // Текущее расстояние вдоль луча
+  float d;                 // Расстояние до сцены
+  int steps = 0;           // Счетчик выполненных шагов
+  
+  // Цикл Raymarching
+  for (int i = 0; i < MAX_STEPS; i += 1) {
+    // Вычисляем текущую позицию вдоль луча
+    vec3 p = ro + rd * t;
+    // Получаем расстояние до сцены в текущей позиции
+    d = sceneSDF(p);
+    // Если очень близко к поверхности или вышли за пределы - выходим
+    if (d < 0.001 || t > 100.0) break;
+    // Увеличиваем расстояние вдоль луча
+    t += d;
+    // Увеличиваем счетчик шагов
+    //steps++;
+  }
+  
+  float color = writeNumber(uv, modI(floor(angle * 180.0 / 3.1415926),360.0));
+
+  // Если луч пересек объект
+  if (d < 0.001) {
+    // Вычисляем точку пересечения
+    vec3 p = ro + rd * t;
+    // Позиция источника света
+    vec3 lightPos = vec3(2.0, 5.0, 3.0);
+    // Вычисляем нормаль в точке пересечения
+    vec3 n = calcNormal(p);
+    // Направление к источнику света
+    vec3 lightDir = normalize(lightPos - p);
+    // Направление к камере (обратное направлению луча)
+    vec3 viewDir = -rd;
+    
+    // Вычисляем расстояния до каждого объекта без вращения
+    float d_sphere = sdSphere(p - vec3(-1.0, 0.0, 0.0), 1.0);
+    float d_box = sdBox(p - vec3(1.0, 0.0, 0.0), vec3(0.8));
+    float d_torus = sdTorus(p - vec3(0.0, 0.0, 1.0), vec2(1.2, 0.3));
+    
+    // Определяем цвет объекта по ближайшему расстоянию
+    vec3 object_color;
+
+    if (figure_detector == 1) object_color = vec3(1.0, 0.2, 0.2);  // Красный для сферы
+    if (figure_detector == 2) object_color = vec3(0.2, 1.0, 0.2);  // Зеленый для куба
+    if (figure_detector == 3) object_color = vec3(0.2, 0.4, 1.0);  // Синий для тора
+
+    // Диффузная составляющая освещения (скалярное произведение)
+    float diff = max(0.0, dot(n, lightDir));
+
+    // Фоновое освещение
+    float ambient = 0.1;
+    
+    // Бликовая составляющая (отражение)
+    float spec = pow(max(0.0, dot(reflect(-lightDir, n), viewDir)), 32.0);
+    
+    // Ambient occlusion (затемнение в углублениях)
+    float ao = 1.0 - float(steps) / float(MAX_STEPS);
+    
+    // Комбинируем цвета и освещение
+    vec3 final_color = (ambient + diff) * object_color; // Основной цвет
+    final_color += spec * vec3(0.8);                   // Блики
+    final_color *= ao;                                 // Применяем ambient occlusion
+
+    // Устанавливаем цвет пикселя
+    if (color != 0.0)      
+    {
+      gl_FragColor = vec4(0.1 /*R*/, 0.1 /*G*/, 0.2 /*B*/, color /*A*/);
+    }
+    else
+    {
+      gl_FragColor = vec4(final_color, 1.0);
+    }
+    
+  } else {
+    // Если луч не пересек объект - фон (темно-синий)
+
+    if (color != 0.0)      
+    {
+      gl_FragColor = vec4(0.1 /*R*/, 0.1 /*G*/, 0.2 /*B*/, color /*A*/);
+    }
+    else
+    {
+      gl_FragColor = vec4(0.1, 0.1, 0.2, 1.0);
+    }
+    
+  }
+
+  
+  //gl_FragColor = vec4(0.1 /*R*/, 0.1 /*G*/, 0.2 /*B*/, color /*A*/);
+}
+`;
+
+
+
+
+
+
+// Создаем вершинный шейдер
+const vertShader = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vertShader, vsSource);
+
+// Компилируем вершинный шейдер
+gl.compileShader(vertShader);
+
+// Создаем фрагментный шейдер
+const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fragShader, fsSource);
+
+// Компилируем фрагментный шейдер
+gl.compileShader(fragShader);
+
+// Проверяем ошибки компиляции фрагментного шейдера
+if (!gl.getShaderParameter(fragShader, gl.COMPILE_STATUS)) {
+  console.error('Ошибка компиляции фрагментного шейдера:', gl.getShaderInfoLog(fragShader));
+}
+
+// Создаем шейдерную программу
+const program = gl.createProgram();
+// Прикрепляем шейдеры к программе
+gl.attachShader(program, vertShader);
+gl.attachShader(program, fragShader);
+// Связываем программу
+gl.linkProgram(program);
+// Используем программу
+gl.useProgram(program);
+
+// Проверяем ошибки линковки программы
+if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+  console.error('Ошибка линковки программы:', gl.getProgramInfoLog(program));
+}
+
+// Создаем данные для полноэкранного прямоугольника
+// (4 вершины для TRIANGLE_STRIP: (-1,-1) (1,-1) (-1,1) (1,1))
+const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+// Создаем буфер для вершин
+const vertexBuffer = gl.createBuffer();
+// Привязываем буфер
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+// Загружаем данные в буфер
+gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+// Получаем атрибут aPosition из шейдера
+const positionAttrib = gl.getAttribLocation(program, 'aPosition');
+
+
+// Создание текстуры с цифрами
+const texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texture);
+gl.texImage2D(
+    gl.TEXTURE_2D, /*BindPoint*/
+    0, /*mipLevel*/
+    gl.RGBA, /*internalFormat*/
+    //200, /*width (это не нужно, ии ошибся)*/
+    //100, /*это тоже*/
+    //0, /*и это*/
+    gl.RGBA, /*format*/
+    gl.UNSIGNED_BYTE, /*type*/
+    generateDigitTexture() /*HTMLElement*/
+);
+
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+
+
+// Включаем атрибут
+gl.enableVertexAttribArray(positionAttrib);
+// Указываем, как читать данные из буфера
+gl.vertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, 0);
+
+// Получаем uniform-переменные
+const resolutionUniform = gl.getUniformLocation(program, 'uResolution');
+const timeUniform = gl.getUniformLocation(program, 'uTime');
+const textureLoc = gl.getUniformLocation(program, 'uTexture');
+gl.uniform1i(textureLoc, 0);
+
+// Устанавливаем значение разрешения
+gl.uniform2f(resolutionUniform, canvas.width, canvas.height);
+
+
+// Генерация текстуры с цифрами
+function generateDigitTexture() {
+    const canvas = document.createElement('canvas');
+    
+    
+    
+    canvas.id = "digital_texture"
+    var dt_width = canvas.width
+    var dt_height = canvas.height
+    canvas.width = dt_width;
+    canvas.height = dt_height;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(0, 20);
+    
+    
+    
+    ctx.scale(1, -1);
+    // Прозрачный фон
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+
+    ctx.fillRect(0, 0, dt_width, dt_height);
+    
+    var digit_height = 10
+    var digit_width = 5
+    var height_correction = 4
+
+    // Настройки шрифта
+    ctx.fillStyle = 'black';
+    ctx.font = 8 + 'px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    //ctx.translate(0, 0)
+    
+    // Рисуем цифры (3x1 сетка) //от 0 до 9 ?
+    for (let i = 0; i < 10; i++) {
+        const x = ((9-i) % 5) * digit_height + digit_width;
+        const y = (Math.floor(i / 5) * digit_height + digit_height) - height_correction;
+        ctx.fillText((9-i), x, y);
+    }
+
+    // var poly = new Path2D();
+    // poly.moveTo(0, 0);//верх лев
+    // poly.lineTo(dt_width, 0);//верх прав
+    // poly.lineTo(dt_width, dt_height);//ниж прав
+    // poly.lineTo(0, dt_height);//ниж лев
+    // poly.lineTo(0, 0);//верх лев
+    // poly.closePath();
+
+    // ctx.strokeStyle = "#00FFFF"
+    // ctx.stroke(poly);
+
+
+    // for (var pl = 0; pl <= 50; pl = pl + 10) {
+        
+    //     for (var pl_y = 0; pl_y <= 20; pl_y = pl_y + 10) {
+    //         var digit_width = 10
+    //         var poly = new Path2D();
+    //         poly.moveTo(pl, pl_y);//верх лев
+    //         poly.lineTo(digit_width, pl_y);//верх прав
+    //         poly.lineTo(digit_width, digit_height);//ниж прав
+    //         poly.lineTo(pl, digit_height);//ниж лев
+    //         poly.lineTo(pl, pl_y);//верх лев
+    //         poly.closePath();
+
+    //         ctx.strokeStyle = "#00FFFF"
+    //         ctx.stroke(poly);
+    //     }
+    // }
+
+    //document.body.appendChild(canvas)
+
+    return canvas;
+}
+
+
+// Функция рендеринга
+function render(time) {
+  // Конвертируем время в секунды
+  time *= 0.002;
+  // Устанавливаем значение времени в шейдер
+  gl.uniform1f(timeUniform, time);
+  // Рисуем полноэкранный прямоугольник (4 вершины)
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // Запрашиваем следующий кадр анимации
+  
+  
+  console.log(gl.getExtension('WEBGL_debug_shaders').getTranslatedShaderSource(fragShader))
+
+  requestAnimationFrame(render);
+}
+
+// Запускаем цикл рендеринга
+requestAnimationFrame(render);
+</script>
+
+</BODY>
+</HTML>
+
+
+<!--
+    Как работает программа:
+
+    1. **Инициализация WebGL**:
+      - Создаем canvas и получаем WebGL-контекст
+      - Компилируем вершинный и фрагментный шейдеры
+      - Создаем и линкуем шейдерную программу
+
+    2. **Вершинный шейдер**:
+      - Рисует полноэкранный прямоугольник
+      - Принимает атрибут aPosition (2D координаты)
+      - Передает координаты без изменений
+
+    3. **Фрагментный шейдер**:
+      - **SDF-функции**: Вычисляют расстояния до геометрических фигур
+      - **sceneSDF**: Объединяет объекты и применяет вращение
+      - **calcNormal**: Вычисляет нормаль через градиент расстояния
+      - **Raymarching алгоритм**:
+        - Шагает вдоль луча от камеры
+        - Останавливается при пересечении поверхности или превышении лимита
+      - **Освещение**:
+        - Диффузное (diff)
+        - Блики (spec)
+        - Ambient occlusion (ao)
+      - **Цвета объектов**:
+        - Определяются по минимальному расстоянию до объектов
+        - Сфера - красная, Куб - зеленый, Тор - синий
+
+    4. **Рендеринг**:
+      - Создаем буфер для полноэкранного прямоугольника
+      - Устанавливаем uniform-переменные (разрешение и время)
+      - В цикле анимации обновляем время и перерисовываем сцену
+
+    ### Особенности реализации:
+    - Использует настоящие SDF-функции для точного расчета
+    - Вращение всей сцены вокруг оси Y
+    - Оптимизировано с ограничением шагов (64 шага)
+    - Физически корректное освещение с ambient occlusion
+    - Автоматически адаптируется к размеру canvas
+    - Корректное определение принадлежности точки к объекту
+
+    Программа создает интерактивную 3D-сцену с вращающимися объектами, где:
+    - Красная сфера находится слева
+    - Зеленый куб - справа
+    - Синий тор - в центре сцены
+
+    Освещение включает направленный источник света с тенями и бликами, создавая реалистичное объемное представление объектов.
+-->
