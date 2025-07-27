@@ -4,6 +4,6 @@
 <br>
 <a href='https://plavozont.github.io/dictation/index.html'>Программа чтобы учить иностранные слова (App to learn foreign words)</a>
 <br>
-<a href='/ray_marching_3d/index.html'>Ray Marching 3D Engine</a>
+<a href='https://plavozont.github.io/ray_marching_3d/index.html'>Ray Marching 3D Engine</a>
 <br>
 <a href='https://plavozont.github.io/'>И прочее... Visit my web page on gitub.io</a>
