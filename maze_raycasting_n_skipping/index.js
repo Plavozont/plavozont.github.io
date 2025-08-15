@@ -3118,11 +3118,7 @@ function renderScene(rays) {
 
 
 
-canvas.addEventListener("click", () => {
-  //console.log(document.pointerLockElement)
-  canvas.requestPointerLock();
-  
-});
+
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowUp") {
@@ -3159,6 +3155,14 @@ document.addEventListener("keyup", (e) => {
   }
 });
 
+
+canvas.addEventListener("click", () => {
+  //console.log(document.pointerLockElement)
+  canvas.requestPointerLock();
+  
+});
+
+
 document.addEventListener("mousemove", function (event) {
   if (document.pointerLockElement != null)
   {
@@ -3183,22 +3187,47 @@ document.addEventListener("mousedown", function (event) {
 });
 
 
-document.addEventListener('touchstart', (event) => {
-  window.active_touch = {}
-  
-  console.log('Вы приложили палец к элементу')
-  console.log(event)
+
+
+document.body.addEventListener('touchstart', (event) => {
+  //console.log('Вы приложили палец к экрану')
+  window.scene_grabbed = true
+
 })
 
-document.addEventListener('touchmove', (event) => {
-  console.log('По мне ведут пальцем')
-  console.log(event)
+window.previousTouch;
+document.body.addEventListener('touchmove', (event) => {
+
+  if (window.scene_grabbed == undefined) return
+
+  const touch = event.touches[0];
+
+  if (window.previousTouch)
+  {
+
+    event.movementX = touch.pageX - window.previousTouch.pageX;
+    event.movementY = touch.pageY - window.previousTouch.pageY;
+
+    var mx = Math.cos(player.angle) * -event.movementY/4;
+    var my = Math.sin(player.angle) * -event.movementY/4;
+    apply_move(mx,my)
+    player.angle += toRadians(event.movementX/4);
+
+    //console.log(event)
+
+    //console.log('По мне ведут пальцем ' + event.movementX + ' ' + event.movementY)
+    //move_scene(event)
+  }
+
+  window.previousTouch = touch;
 })
 
-document.addEventListener('touchend', (event) => {
-  console.log('Прикосновение закончено')
-  console.log(event)
+document.body.addEventListener('touchend', (event) => {
+  //console.log('Прикосновение закончено')
+  delete window.scene_grabbed
+  delete window.previousTouch
 })
+
 
 
 //https://habr.com/ru/post/523440/?ysclid=l6303xvge2523552793

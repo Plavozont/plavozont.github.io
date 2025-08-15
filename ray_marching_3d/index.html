@@ -726,7 +726,7 @@ document.body.addEventListener("mousedown", function (event) {grab_scene(event)}
 document.body.addEventListener("mouseup", function (event) {release_scene(event)}, false)
 
 document.body.addEventListener('touchstart', (event) => {
-  console.log('Вы приложили палец к экрану')
+  //console.log('Вы приложили палец к экрану')
   grab_scene(event)
 })
 
@@ -736,11 +736,10 @@ document.body.addEventListener('touchmove', (event) => {
 
   if (previousTouch)
   {
-    
-    console.log(event)
+    //console.log(event)
     event.movementX = touch.pageX - previousTouch.pageX;
     event.movementY = touch.pageY - previousTouch.pageY;
-    console.log('По мне ведут пальцем ' + event.movementX + ' ' + event.movementY)
+    //console.log('По мне ведут пальцем ' + event.movementX + ' ' + event.movementY)
     move_scene(event)
   }
 
@@ -748,7 +747,7 @@ document.body.addEventListener('touchmove', (event) => {
 })
 
 document.body.addEventListener('touchend', (event) => {
-  console.log('Прикосновение закончено')
+  //console.log('Прикосновение закончено')
   release_scene(event)
 })
 
