@@ -6,7 +6,7 @@
 
 <!--RayMarching от DeepSeek-->
 
-<canvas id="canvas" width="1024" height="768"></canvas>
+<canvas id="canvas" width="640" height="480"></canvas>
 
 <script>
 // Получаем элемент canvas
@@ -340,8 +340,8 @@ float writeNumber(vec2 uv, float fnum)
 
     int dcf = getDigitCount(fract_part);
 
-    //int dgt0 = getNthDigit(fract_part, 4);
-    //color += printDigit(uv, float(dgt0), float(1) * digit_width, 0.0);
+    int dgt0 = getNthDigit(fract_part, 4);
+    color += printDigit(uv, float(dgt0), float(1) * digit_width, 0.0);
 
     i = dcf;
     for (int nul = 1; nul > 0; nul++)
@@ -478,9 +478,9 @@ void main() {
   
 
 
-  //float color = writeNumber(uv, modI(floor(angle * 180.0 / 3.1415926),360.0));
+  float color = writeNumber(uv, modI(floor(angleX * 180.0 / 3.1415926),360.0));
   //float color = writeNumber(uv, uCurX);
-  float color = 0.0;
+  //float color = 0.0;
   
 
   // Если луч пересек объект
@@ -724,6 +724,33 @@ function generateDigitTexture() {
 document.body.addEventListener("mousemove", function (event) {move_scene(event)}, false)
 document.body.addEventListener("mousedown", function (event) {grab_scene(event)}, false)
 document.body.addEventListener("mouseup", function (event) {release_scene(event)}, false)
+
+document.body.addEventListener('touchstart', (event) => {
+  console.log('Вы приложили палец к экрану')
+  grab_scene(event)
+})
+
+var previousTouch;
+document.body.addEventListener('touchmove', (event) => {
+  const touch = event.touches[0];
+
+  if (previousTouch)
+  {
+    
+    console.log(event)
+    event.movementX = touch.pageX - previousTouch.pageX;
+    event.movementY = touch.pageY - previousTouch.pageY;
+    console.log('По мне ведут пальцем ' + event.movementX + ' ' + event.movementY)
+    move_scene(event)
+  }
+
+  previousTouch = touch;
+})
+
+document.body.addEventListener('touchend', (event) => {
+  console.log('Прикосновение закончено')
+  release_scene(event)
+})
 
 window.CurX = 0
 window.CurY = 0
