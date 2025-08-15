@@ -6,7 +6,7 @@
 
 <!--RayMarching от DeepSeek-->
 
-<canvas id="canvas" width="320" height="200"></canvas>
+<canvas id="canvas" width="1024" height="768"></canvas>
 
 <script>
 // Получаем элемент canvas
@@ -41,6 +41,10 @@ precision highp float;
 // Uniform-переменные: разрешение экрана и время
 uniform vec2 uResolution;
 uniform float uTime;
+uniform float uCurX;
+uniform float uCurY;
+
+
 
 //Текстура с цифрами от 0 до 9
 uniform sampler2D uTexture;
@@ -49,7 +53,8 @@ uniform sampler2D uTexture;
   float digit_width = 0.033;
   float digit_height = 0.068;
   int figure_detector = 0;
-  float angle;
+  float angleX;
+  float angleY;
 
 
 //Returns accurate MOD when arguments are approximate integers.
@@ -311,6 +316,10 @@ float printDigit(vec2 uv, float digit, float digit_position_on_canvas_x, float d
 float writeNumber(vec2 uv, float fnum)
 {
     float color = 0.0;
+
+    float strange_x = 0.0;
+    float strange_y = 0.0;
+
     //нарисовать целую часть
     int i = 0;
     int whole_part = int(floor(fnum));
@@ -319,7 +328,7 @@ float writeNumber(vec2 uv, float fnum)
     {
         int dgt = getNthDigit(whole_part, i + 1);
 
-        color += printDigit(uv, float(dgt), float(nul - 1) * 0.03 - 1.75, 0.9);
+        color += printDigit(uv, float(dgt), float(nul - 1) * digit_width - strange_x, strange_y);
 
         //break;
         i++;
@@ -340,7 +349,7 @@ float writeNumber(vec2 uv, float fnum)
         int dgt = getNthDigit(fract_part, nul);
         
         //int log = convertFractPartToInt(0.012);
-        color += printDigit(uv, float(dgt), float(dcw + i) * digit_width - 1.75, 0.9);
+        color += printDigit(uv, float(dgt), float(dcw + i) * digit_width - strange_x, strange_y);
 
         i--;
         if (i <= 0 ) break;
@@ -349,54 +358,77 @@ float writeNumber(vec2 uv, float fnum)
     return color;
 }
 
+//SDF-функция для плоскости
+float sdPlane(vec3 p /*Точка откуда мы смотрим*/)
+{
+    return p.y;
+}
+
+
 // SDF-функция для сферы
-float sdSphere(vec3 p /*это что центр?*/, float r /*Это радиус*/) {
-  return length(p) - r; // Расстояние от центра до точки минус радиус
+float sdSphere(vec3 p /*точка откуда мы смотрим*/, vec3 s_coord /*координаты центра сферы*/, float r /*радиус*/) {
+  return length(p - s_coord) - r; // Расстояние от центра до точки минус радиус
 }
 
 // SDF-функция для куба
-float sdBox(vec3 p /*центр?*/, vec3 b /*Длинна грани куба*/) {
+float sdBox(vec3 p /*точка откуда мы смотрим*/, vec3 c_coord/*координаты центра куба*/, vec3 b /*размер куба*/) {
   // Вычисляем расстояние до граней куба
-  vec3 d = abs(p) - b;
+  vec3 d = abs(p - c_coord) - b;
   // Комбинируем расстояния
   return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
 }
 
 // SDF-функция для тора
-float sdTorus(vec3 p, vec2 t) {
+float sdTorus(vec3 p /*Точка откуда мы смотрим*/, vec3 t_coord /*координаты центра тора*/, vec2 t /**/) {
   // Преобразуем координаты для тора
-  vec2 q = vec2(length(p.xz) - t.x, p.y);
+  vec2 q = vec2(length(p.xz - t_coord.xz) - t.x, p.y - t_coord.y);
   return length(q) - t.y; // Расстояние до тора
 }
 
 // SDF-функция для всей сцены
-float sceneSDF(vec3 p) {
+float sceneSDF(vec3 p /*Точка из которой мы смотрим*/) {
   // Вычисляем угол вращения на основе времени
-  angle = uTime * float(0.5); //Скорость течения времени
   
-  // Создаем матрицу вращения вокруг оси Y
+  
+  angleX = -uCurY * 0.01; //Поворот по одной оси
+  angleY = uCurX * 0.01; //Поворот по другой
+  
+  
   //mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-  mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-  mat2 rot_tor = mat2(0); //mat2(cos(angle*float(4)), -sin(angle*float(4)), sin(angle*float(4)), cos(angle*float(4)));
-  mat2 rot_sphere = mat2(0);//mat2(cos(angle*float(8)), -sin(angle*float(8)), sin(angle*float(8)), cos(angle*float(8)));
-  mat2 rot_cube = mat2(0); //mat2(cos(angle*float(16)), -sin(angle*float(16)), sin(angle*float(16)), cos(angle*float(16)));
+  //mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)); // Создаем матрицу вращения вокруг оси Y
+  mat2 rotX = mat2(cos(angleX), -sin(angleX), sin(angleX), cos(angleX)); //Вокруг X
+  mat2 rotY = mat2(cos(angleY), -sin(angleY), sin(angleY), cos(angleY)); //Вокруг X
 
-  // Применяем вращение к XZ-плоскости
-  p.yz *= rot;
-  
+
+  //mat2 rot_tor = mat2(0); //mat2(cos(angle*float(4)), -sin(angle*float(4)), sin(angle*float(4)), cos(angle*float(4)));
+  //mat2 rot_sphere = mat2(0);//mat2(cos(angle*float(8)), -sin(angle*float(8)), sin(angle*float(8)), cos(angle*float(8)));
+  //mat2 rot_cube = mat2(0); //mat2(cos(angle*float(16)), -sin(angle*float(16)), sin(angle*float(16)), cos(angle*float(16)));
+
+  // Применяем вращение (если по всем трём получится вращение как в игре Elite 1997 года!!!)
+  p.yz *= rotX; // Вращение вокруг оси X
+  p.xz *= rotY; //Вокруг Y
+  //p.xy *= rot; // Вращение вокруг оси Z
+
+  vec3 SphereCoord = vec3(-1.0, 0.0, 0.0); //Координаты центра сферы
+  vec3 CubeCoord = vec3(1.0, 0.0, 0.0); //Координаты центра куба
+  vec3 TorusCoord = vec3(0.0, 0.0, 1.0); // Координаты центра тора
+
   // Вычисляем расстояния до объектов сцены
-  float sphere = sdSphere(p - vec3(-1.0, 0.0, 0.0), 1.0 + float(rot_sphere)); // Сфера слева
-  float cube = sdBox(p - vec3(1.0, 0.0, 0.0), vec3(0.8 + float(rot_cube)));  // Куб справа
-  float torus = sdTorus(p - vec3(0.0, 0.0, 1.0), vec2(1.3 + float(rot_tor), 0.3)); // Тор по центру
   
+  float sphere = sdSphere(p, SphereCoord, 1.0); // Сфера слева
+  float cube = sdBox(p, CubeCoord, vec3(0.8));  // Куб справа
+  float torus = sdTorus(p, TorusCoord, vec2(1.3, 0.3)); // Тор по центру
+  float plane = p.y + 10.0; //Плоскость под
+
   // Возвращаем минимальное расстояние (объединение объектов)
 
   
-  if (min(sphere, min(cube, torus)) == sphere) figure_detector = 1;
-  if (min(sphere, min(cube, torus)) == cube) figure_detector = 2;
-  if (min(sphere, min(cube, torus)) == torus) figure_detector = 3;
+  if (min(sphere, min(cube, min(torus, plane))) == sphere) figure_detector = 1;
+  if (min(sphere, min(cube, min(torus, plane))) == cube) figure_detector = 2;
+  if (min(sphere, min(cube, min(torus, plane))) == torus) figure_detector = 3;
+  if (min(sphere, min(cube, min(torus, plane))) == plane) figure_detector = 4;
   
-  return min(sphere, min(cube, torus));
+  return min(sphere, min(cube, min(torus, plane)));
 }
 
 // Функция вычисления нормали в точке
@@ -444,7 +476,12 @@ void main() {
     //steps++;
   }
   
-  float color = writeNumber(uv, modI(floor(angle * 180.0 / 3.1415926),360.0));
+
+
+  //float color = writeNumber(uv, modI(floor(angle * 180.0 / 3.1415926),360.0));
+  //float color = writeNumber(uv, uCurX);
+  float color = 0.0;
+  
 
   // Если луч пересек объект
   if (d < 0.001) {
@@ -460,9 +497,9 @@ void main() {
     vec3 viewDir = -rd;
     
     // Вычисляем расстояния до каждого объекта без вращения
-    float d_sphere = sdSphere(p - vec3(-1.0, 0.0, 0.0), 1.0);
-    float d_box = sdBox(p - vec3(1.0, 0.0, 0.0), vec3(0.8));
-    float d_torus = sdTorus(p - vec3(0.0, 0.0, 1.0), vec2(1.2, 0.3));
+    //float d_sphere = sdSphere(p, vec3(-1.0, 0.0, 0.0), 1.0);
+    //float d_box = sdBox(p - vec3(1.0, 0.0, 0.0), vec3(0.8));
+    //float d_torus = sdTorus(p - vec3(0.0, 0.0, 1.0), vec2(1.2, 0.3));
     
     // Определяем цвет объекта по ближайшему расстоянию
     vec3 object_color;
@@ -470,6 +507,7 @@ void main() {
     if (figure_detector == 1) object_color = vec3(1.0, 0.2, 0.2);  // Красный для сферы
     if (figure_detector == 2) object_color = vec3(0.2, 1.0, 0.2);  // Зеленый для куба
     if (figure_detector == 3) object_color = vec3(0.2, 0.4, 1.0);  // Синий для тора
+    if (figure_detector == 4) object_color = vec3(0.5, 0.5, 0.5);  // Синий для тора
 
     // Диффузная составляющая освещения (скалярное произведение)
     float diff = max(0.0, dot(n, lightDir));
@@ -599,6 +637,8 @@ gl.vertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, 0);
 // Получаем uniform-переменные
 const resolutionUniform = gl.getUniformLocation(program, 'uResolution');
 const timeUniform = gl.getUniformLocation(program, 'uTime');
+const mxUniform = gl.getUniformLocation(program, 'uCurX');
+const myUniform = gl.getUniformLocation(program, 'uCurY');
 const textureLoc = gl.getUniformLocation(program, 'uTexture');
 gl.uniform1i(textureLoc, 0);
 
@@ -681,18 +721,49 @@ function generateDigitTexture() {
 }
 
 
+document.body.addEventListener("mousemove", function (event) {move_scene(event)}, false)
+document.body.addEventListener("mousedown", function (event) {grab_scene(event)}, false)
+document.body.addEventListener("mouseup", function (event) {release_scene(event)}, false)
+
+window.CurX = 0
+window.CurY = 0
+
+
+function move_scene(event)
+{
+  if (window.scene_grabbed == undefined) return
+
+  //console.log(event.movementX + " " + event.movementY)
+  window.CurX += event.movementX
+  window.CurY += event.movementY
+  gl.uniform1f(mxUniform, window.CurX);
+  gl.uniform1f(myUniform, window.CurY);
+}
+
+function grab_scene(event)
+{
+  window.scene_grabbed = true
+}
+
+function release_scene(event)
+{
+  delete window.scene_grabbed
+}
+
+
 // Функция рендеринга
 function render(time) {
   // Конвертируем время в секунды
   time *= 0.002;
   // Устанавливаем значение времени в шейдер
   gl.uniform1f(timeUniform, time);
+  
   // Рисуем полноэкранный прямоугольник (4 вершины)
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   // Запрашиваем следующий кадр анимации
   
   
-  console.log(gl.getExtension('WEBGL_debug_shaders').getTranslatedShaderSource(fragShader))
+  //console.log(gl.getExtension('WEBGL_debug_shaders').getTranslatedShaderSource(fragShader))
 
   requestAnimationFrame(render);
 }
